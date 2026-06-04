@@ -514,7 +514,15 @@
   <h2>Order <em>Received!</em></h2>
   <p>Thank you for choosing Vaughn Sweetz!<br>We'll review your order and follow up with confirmation,<br>total amount due, and payment instructions.</p>
   <div class="success-confirm" id="successConfirm"></div>
-  <p style="font-size:0.78rem;color:#aaa;margin-top:12px;">Made with love, served with joy. ♡</p>
+  <div style="display:flex;gap:16px;justify-content:center;margin-top:24px;flex-wrap:wrap;">
+    <button onclick="downloadPDF()" style="background:var(--navy);color:var(--white);border:none;border-radius:4px;padding:14px 32px;font-family:'Montserrat',sans-serif;font-size:0.75rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;cursor:pointer;transition:all 0.3s;box-shadow:0 4px 16px rgba(26,31,107,0.2);">
+      📄 Download PDF Receipt
+    </button>
+    <a href="index.html" style="background:transparent;color:var(--navy);border:1.5px solid var(--cream-dark);border-radius:4px;padding:14px 32px;font-family:'Montserrat',sans-serif;font-size:0.75rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;cursor:pointer;text-decoration:none;display:inline-block;">
+      ← Back to Website
+    </a>
+  </div>
+  <p style="font-size:0.78rem;color:#aaa;margin-top:20px;">Made with love, served with joy. ♡</p>
 </div>
 
 <!-- FOOTER -->
@@ -971,60 +979,208 @@
       }
     };
 
-    // ── DEFTFORM API (correct v1 endpoint + object format) ──
-    // NOTE: API submissions also trigger email fallback since Deftform API
-    // does NOT send email notifications — email is the primary notification method
-    try {
-      const res = await fetch('https://deftform.com/api/v1/forms/jttyvr/response', {
-        method: 'POST',
-        mode: 'cors',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer gFgFTAwnnbm0',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
+    // ── STEP 1: SEND TO DEFTFORM (fire and forget) ──
+    fetch('https://deftform.com/api/v1/forms/jttyvr/response', {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer gFgFTAwnnbm0'
+      },
+      body: JSON.stringify(payload)
+    }).then(() => console.log('Deftform: request sent'))
+      .catch(e => console.log('Deftform: could not reach API', e));
 
-      if (res.ok) {
-        console.log('Deftform submission successful');
+    // ── STEP 2: SEND EMAIL TO SELENA via Formspree ──
+    // Formspree reliably emails Lawill8@outlook.com — no email client needed
+    const formspreeData = new FormData();
+    formspreeData.append('_subject', '🧁 New Order Request — ' + name);
+    formspreeData.append('_replyto', email);
+    formspreeData.append('Name', name);
+    formspreeData.append('Email', email);
+    formspreeData.append('Phone', phone);
+    formspreeData.append('Fulfillment', fulfillment);
+    formspreeData.append('Address', address || 'N/A');
+    formspreeData.append('Event Date', date);
+    formspreeData.append('Time', time || 'Not specified');
+    formspreeData.append('Occasion', occasion || 'Not specified');
+    formspreeData.append('Order Details', dessertsText);
+    formspreeData.append('Special Requests', specialReq || 'None');
+    formspreeData.append('Allergies', allergies || 'None');
+    formspreeData.append('Promo Code', promo || 'None');
+
+    try {
+      const emailRes = await fetch('https://formspree.io/f/REPLACE_WITH_FORMSPREE_ID', {
+        method: 'POST',
+        body: formspreeData,
+        headers: { 'Accept': 'application/json' }
+      });
+      if (emailRes.ok) {
+        console.log('Email sent to Selena successfully via Formspree');
       } else {
-        const errText = await res.text();
-        console.error('Deftform error:', res.status, errText);
+        console.error('Formspree error:', await emailRes.text());
       }
     } catch(e) {
-      console.error('Deftform API error:', e);
+      console.error('Email send error:', e);
     }
 
-    // Always send email notification since Deftform API does not trigger emails
-    emailFallback(name, email, phone, fulfillment, date, time, occasion, dessertsText, specialReq, allergies, promo, address);
+    // ── STEP 3: SHOW SUCCESS ──
     showSuccess(name, email, date, fulfillment, dessertCount);
   }
 
   function emailFallback(name, email, phone, fulfillment, date, time, occasion, desserts, special, allergies, promo, address) {
-    const subject = encodeURIComponent('New Vaughn Sweetz Order — ' + name);
-    const body = encodeURIComponent(
-`NEW ORDER REQUEST — VAUGHN SWEETZ
-===================================
-Name: ${name}
-Email: ${email}
-Phone: ${phone}
-Fulfillment: ${fulfillment}
-Address: ${address || 'N/A'}
-Date: ${date}
-Time: ${time}
-Occasion: ${occasion}
+    const subject = encodeURIComponent('🧁 New Order Request — ' + name);
+    // Format desserts nicely
+    const dessertLines = desserts.split('\n').map(line => {
+      if (line.startsWith('DESSERT #')) return '<h3 style="margin:16px 0 8px;color:#1a1f6b;font-size:14px;border-bottom:1px solid #e2cec1;padding-bottom:6px;">' + line + '</h3>';
+      if (line.trim() === '') return '';
+      const parts = line.split(':');
+      if (parts.length >= 2) {
+        const key = parts[0].trim();
+        const val = parts.slice(1).join(':').trim();
+        return '<tr><td style="padding:5px 12px 5px 0;color:#888;font-size:12px;vertical-align:top;white-space:nowrap;">' + key + '</td><td style="padding:5px 0;color:#1a1f6b;font-size:12px;font-weight:600;">' + val + '</td></tr>';
+      }
+      return '<p style="margin:4px 0;font-size:12px;color:#555;">' + line + '</p>';
+    }).join('');
 
-DESSERTS
---------
-${desserts}
+    const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#f5f0ed;font-family:Georgia,serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f0ed;padding:32px 16px;">
+<tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
 
-Special Requests: ${special || 'None'}
-Allergies: ${allergies || 'None'}
-Promo Code: ${promo || 'None'}
-===================================`
-    );
-    window.open('mailto:vaughnsweetz@gmail.com?subject=' + subject + '&body=' + body);
+  <!-- HEADER -->
+  <tr><td style="background:linear-gradient(135deg,#0e1245,#1a1f6b);padding:32px;text-align:center;">
+    <p style="margin:0 0 6px;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#e8c4a8;">Vaughn Sweetz</p>
+    <h1 style="margin:0;font-size:28px;font-style:italic;color:#ffffff;font-weight:700;">New Order Request</h1>
+    <p style="margin:8px 0 0;font-size:12px;color:rgba(255,255,255,0.6);font-style:italic;">Made with love, served with joy. ♡</p>
+  </td></tr>
+
+  <!-- NOTICE -->
+  <tr><td style="background:#fbf3f0;padding:14px 32px;text-align:center;border-bottom:1px solid #e2cec1;">
+    <p style="margin:0;font-size:12px;color:#666;font-style:italic;">Orders are not confirmed until reviewed and deposit/payment details are sent.</p>
+  </td></tr>
+
+  <!-- CUSTOMER INFO -->
+  <tr><td style="padding:28px 32px 0;">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr><td style="background:#1a1f6b;border-radius:4px 4px 0 0;padding:10px 16px;">
+        <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#ffffff;">👤 Customer Information</p>
+      </td></tr>
+      <tr><td style="background:#fbf3f0;border:1px solid #e2cec1;border-top:none;border-radius:0 0 4px 4px;padding:20px 16px;">
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td width="50%" style="padding-bottom:10px;vertical-align:top;">
+              <p style="margin:0 0 2px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#c9956a;">Full Name</p>
+              <p style="margin:0;font-size:14px;color:#1a1f6b;font-weight:600;">${name}</p>
+            </td>
+            <td width="50%" style="padding-bottom:10px;vertical-align:top;">
+              <p style="margin:0 0 2px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#c9956a;">Email</p>
+              <p style="margin:0;font-size:14px;color:#1a1f6b;font-weight:600;">${email}</p>
+            </td>
+          </tr>
+          <tr>
+            <td width="50%" style="padding-bottom:10px;vertical-align:top;">
+              <p style="margin:0 0 2px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#c9956a;">Phone</p>
+              <p style="margin:0;font-size:14px;color:#1a1f6b;font-weight:600;">${phone}</p>
+            </td>
+            <td width="50%" style="padding-bottom:10px;vertical-align:top;">
+              <p style="margin:0 0 2px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#c9956a;">Occasion</p>
+              <p style="margin:0;font-size:14px;color:#1a1f6b;font-weight:600;">${occasion || 'Not specified'}</p>
+            </td>
+          </tr>
+          <tr>
+            <td width="50%" style="padding-bottom:10px;vertical-align:top;">
+              <p style="margin:0 0 2px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#c9956a;">Fulfillment</p>
+              <p style="margin:0;font-size:14px;color:#1a1f6b;font-weight:600;">${fulfillment}</p>
+            </td>
+            <td width="50%" style="padding-bottom:10px;vertical-align:top;">
+              <p style="margin:0 0 2px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#c9956a;">Address</p>
+              <p style="margin:0;font-size:14px;color:#1a1f6b;font-weight:600;">${address || 'N/A'}</p>
+            </td>
+          </tr>
+          <tr>
+            <td width="50%" style="vertical-align:top;">
+              <p style="margin:0 0 2px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#c9956a;">Event Date</p>
+              <p style="margin:0;font-size:14px;color:#1a1f6b;font-weight:600;">${date}</p>
+            </td>
+            <td width="50%" style="vertical-align:top;">
+              <p style="margin:0 0 2px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#c9956a;">Time</p>
+              <p style="margin:0;font-size:14px;color:#1a1f6b;font-weight:600;">${time || 'Not specified'}</p>
+            </td>
+          </tr>
+        </table>
+      </td></tr>
+    </table>
+  </td></tr>
+
+  <!-- DESSERTS -->
+  <tr><td style="padding:20px 32px 0;">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr><td style="background:#1a1f6b;border-radius:4px 4px 0 0;padding:10px 16px;">
+        <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#ffffff;">🧁 Order Details</p>
+      </td></tr>
+      <tr><td style="background:#fbf3f0;border:1px solid #e2cec1;border-top:none;border-radius:0 0 4px 4px;padding:20px 16px;">
+        <table width="100%" cellpadding="0" cellspacing="0">
+          ${dessertLines}
+        </table>
+      </td></tr>
+    </table>
+  </td></tr>
+
+  <!-- ADDITIONAL -->
+  <tr><td style="padding:20px 32px 0;">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr><td style="background:#c9956a;border-radius:4px 4px 0 0;padding:10px 16px;">
+        <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#ffffff;">📋 Additional Details</p>
+      </td></tr>
+      <tr><td style="background:#fbf3f0;border:1px solid #e2cec1;border-top:none;border-radius:0 0 4px 4px;padding:20px 16px;">
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td width="33%" style="padding-bottom:10px;vertical-align:top;">
+              <p style="margin:0 0 2px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#c9956a;">Special Requests</p>
+              <p style="margin:0;font-size:13px;color:#1a1f6b;">${special || 'None'}</p>
+            </td>
+            <td width="33%" style="padding-bottom:10px;vertical-align:top;">
+              <p style="margin:0 0 2px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#c9956a;">Allergies</p>
+              <p style="margin:0;font-size:13px;color:#1a1f6b;">${allergies || 'None'}</p>
+            </td>
+            <td width="33%" style="padding-bottom:10px;vertical-align:top;">
+              <p style="margin:0 0 2px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#c9956a;">Promo Code</p>
+              <p style="margin:0;font-size:13px;color:#1a1f6b;font-weight:700;">${promo || 'None'}</p>
+            </td>
+          </tr>
+        </table>
+      </td></tr>
+    </table>
+  </td></tr>
+
+  <!-- FOOTER -->
+  <tr><td style="padding:28px 32px;">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr><td style="background:#1a1f6b;border-radius:4px;padding:20px;text-align:center;">
+        <p style="margin:0 0 4px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#e8c4a8;">Submitted via VaughnSweetz.com</p>
+        <p style="margin:0;font-size:12px;font-style:italic;color:rgba(255,255,255,0.6);">Made with love, served with joy. ♡</p>
+      </td></tr>
+    </table>
+  </td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+
+    // Use mailto with HTML — most email clients will render it
+    const mailtoLink = 'mailto:Lawill8@outlook.com?subject=' + subject + '&body=' + encodeURIComponent(htmlBody);
+    
+    // Store order data globally for PDF generation
+    window._lastOrderData = { name, email, phone, fulfillment, date, time, occasion, desserts, special, allergies, promo, address };
+    
+    window.open(mailtoLink);
   }
 
   // ── FLAVOR COUNT LOGIC ──
@@ -1094,14 +1250,135 @@ Promo Code: ${promo || 'None'}
     document.getElementById('mainForm').style.display = 'none';
     const sc = document.getElementById('successScreen');
     sc.classList.add('show');
+    
+    const d = window._lastOrderData || {};
+    const dessertsFormatted = (d.desserts || '').split('\n').map(line => {
+      if (!line.trim()) return '';
+      if (line.startsWith('DESSERT #')) return `<div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:var(--navy);margin:16px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--cream-dark);">${line}</div>`;
+      const parts = line.split(':');
+      if (parts.length >= 2) {
+        const key = parts[0].trim();
+        const val = parts.slice(1).join(':').trim();
+        return `<div class="confirm-row"><span class="confirm-key">${key}</span><span class="confirm-val">${val}</span></div>`;
+      }
+      return `<div style="font-size:0.78rem;color:#666;">${line}</div>`;
+    }).join('');
+
     document.getElementById('successConfirm').innerHTML = `
+      <div style="background:var(--navy);color:var(--white);padding:12px 16px;border-radius:4px 4px 0 0;font-size:0.65rem;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;margin:-28px -28px 20px;">
+        👤 Customer Info
+      </div>
       <div class="confirm-row"><span class="confirm-key">Name</span><span class="confirm-val">${name}</span></div>
       <div class="confirm-row"><span class="confirm-key">Email</span><span class="confirm-val">${email}</span></div>
-      <div class="confirm-row"><span class="confirm-key">Requested Date</span><span class="confirm-val">${date}</span></div>
+      <div class="confirm-row"><span class="confirm-key">Phone</span><span class="confirm-val">${d.phone || ''}</span></div>
+      <div class="confirm-row"><span class="confirm-key">Occasion</span><span class="confirm-val">${d.occasion || ''}</span></div>
       <div class="confirm-row"><span class="confirm-key">Fulfillment</span><span class="confirm-val">${fulfillment}</span></div>
-      <div class="confirm-row"><span class="confirm-key">Desserts Ordered</span><span class="confirm-val">${count} item(s)</span></div>
+      <div class="confirm-row"><span class="confirm-key">Event Date</span><span class="confirm-val">${date}</span></div>
+      <div class="confirm-row"><span class="confirm-key">Time</span><span class="confirm-val">${d.time || 'Not specified'}</span></div>
+      <div style="background:var(--navy);color:var(--white);padding:12px 16px;border-radius:4px 4px 0 0;font-size:0.65rem;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;margin:20px -28px 16px;">
+        🧁 Order Details
+      </div>
+      ${dessertsFormatted}
+      ${d.special ? `<div class="confirm-row"><span class="confirm-key">Special Requests</span><span class="confirm-val">${d.special}</span></div>` : ''}
+      ${d.allergies ? `<div class="confirm-row"><span class="confirm-key">Allergies</span><span class="confirm-val">${d.allergies}</span></div>` : ''}
+      ${d.promo ? `<div class="confirm-row"><span class="confirm-key">Promo Code</span><span class="confirm-val" style="color:var(--rose-gold);font-weight:700;">${d.promo}</span></div>` : ''}
     `;
+    
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ── PDF GENERATION ──
+  function downloadPDF() {
+    const d = window._lastOrderData || {};
+    const printContent = `
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Vaughn Sweetz Order — ${d.name || ''}</title>
+<style>
+  body { font-family: Georgia, serif; margin: 0; padding: 40px; color: #1a1f6b; background: #fff; }
+  .header { background: #1a1f6b; color: #fff; padding: 28px 32px; border-radius: 6px; margin-bottom: 24px; text-align: center; }
+  .header h1 { margin: 0; font-size: 24px; font-style: italic; }
+  .header p { margin: 6px 0 0; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #e8c4a8; }
+  .notice { background: #fbf3f0; border: 1px solid #e2cec1; padding: 12px 20px; border-radius: 4px; font-size: 12px; color: #666; font-style: italic; text-align: center; margin-bottom: 20px; }
+  .section { margin-bottom: 20px; }
+  .section-head { background: #1a1f6b; color: #fff; padding: 9px 16px; border-radius: 4px 4px 0 0; font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+  .section-head.gold { background: #c9956a; }
+  .section-body { border: 1px solid #e2cec1; border-top: none; border-radius: 0 0 4px 4px; padding: 16px; background: #fbf3f0; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .field-label { font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #c9956a; margin-bottom: 3px; }
+  .field-value { font-size: 13px; color: #1a1f6b; font-weight: 600; }
+  .dessert-title { font-size: 13px; font-weight: 700; color: #1a1f6b; margin: 14px 0 8px; padding-bottom: 6px; border-bottom: 1px solid #e2cec1; }
+  .row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #f0e8e4; font-size: 12px; }
+  .row-key { color: #888; }
+  .row-val { color: #1a1f6b; font-weight: 600; }
+  .footer { text-align: center; margin-top: 32px; padding-top: 16px; border-top: 1px solid #e2cec1; font-size: 11px; color: #aaa; font-style: italic; }
+</style>
+</head>
+<body>
+<div class="header">
+  <p>Vaughn Sweetz</p>
+  <h1>Order Request</h1>
+</div>
+<div class="notice">Orders are not confirmed until reviewed and deposit/payment details are sent.</div>
+
+<div class="section">
+  <div class="section-head">👤 Customer Information</div>
+  <div class="section-body">
+    <div class="grid-2" style="margin-bottom:12px;">
+      <div><div class="field-label">Full Name</div><div class="field-value">${d.name || ''}</div></div>
+      <div><div class="field-label">Email</div><div class="field-value">${d.email || ''}</div></div>
+    </div>
+    <div class="grid-2" style="margin-bottom:12px;">
+      <div><div class="field-label">Phone</div><div class="field-value">${d.phone || ''}</div></div>
+      <div><div class="field-label">Occasion</div><div class="field-value">${d.occasion || 'Not specified'}</div></div>
+    </div>
+    <div class="grid-2" style="margin-bottom:12px;">
+      <div><div class="field-label">Fulfillment</div><div class="field-value">${d.fulfillment || ''}</div></div>
+      <div><div class="field-label">Address</div><div class="field-value">${d.address || 'N/A'}</div></div>
+    </div>
+    <div class="grid-2">
+      <div><div class="field-label">Event Date</div><div class="field-value">${d.date || ''}</div></div>
+      <div><div class="field-label">Time</div><div class="field-value">${d.time || 'Not specified'}</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-head">🧁 Order Details</div>
+  <div class="section-body">
+    ${(d.desserts || '').split('\n').map(line => {
+      if (!line.trim()) return '';
+      if (line.startsWith('DESSERT #')) return '<div class="dessert-title">' + line + '</div>';
+      const parts = line.split(':');
+      if (parts.length >= 2) return '<div class="row"><span class="row-key">' + parts[0].trim() + '</span><span class="row-val">' + parts.slice(1).join(':').trim() + '</span></div>';
+      return '<div style="font-size:12px;color:#555;">' + line + '</div>';
+    }).join('')}
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-head gold">📋 Additional Details</div>
+  <div class="section-body">
+    <div class="grid-3">
+      <div><div class="field-label">Special Requests</div><div class="field-value">${d.special || 'None'}</div></div>
+      <div><div class="field-label">Allergies</div><div class="field-value">${d.allergies || 'None'}</div></div>
+      <div><div class="field-label">Promo Code</div><div class="field-value" style="color:#c9956a;">${d.promo || 'None'}</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">Submitted via VaughnSweetz.com · Made with love, served with joy. ♡</div>
+</body>
+</html>`;
+
+    const win = window.open('', '_blank');
+    win.document.write(printContent);
+    win.document.close();
+    win.focus();
+    setTimeout(() => { win.print(); }, 500);
   }
 </script>
 </body>
