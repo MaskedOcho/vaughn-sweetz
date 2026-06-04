@@ -637,17 +637,21 @@
           <div class="field-grid cols-2" style="margin-bottom:18px;">
             <div>
               <label class="field-label" style="margin-bottom:10px;">Flavors & Quantities</label>
+              <div id="flavor-counter-${{num}}" style="font-size:0.72rem;margin-bottom:10px;padding:8px 12px;border-radius:4px;background:var(--cream);border:1.5px solid var(--cream-dark);display:flex;justify-content:space-between;align-items:center;">
+                <span>Flavors Total: <strong id="flavor-used-${{num}}">0</strong> / <strong id="flavor-max-${{num}}">—</strong></span>
+                <span id="flavor-status-${{num}}" style="font-size:0.65rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;"></span>
+              </div>
               <div class="flavor-qty-grid">
-                <span class="flavor-qty-label">Red Velvet</span><input type="number" class="flavor-qty-input" id="d${num}-fl-redvelvet" placeholder="0" min="0">
-                <span class="flavor-qty-label">Vanilla</span><input type="number" class="flavor-qty-input" id="d${num}-fl-vanilla" placeholder="0" min="0">
-                <span class="flavor-qty-label">Chocolate</span><input type="number" class="flavor-qty-input" id="d${num}-fl-chocolate" placeholder="0" min="0">
-                <span class="flavor-qty-label">Strawberry</span><input type="number" class="flavor-qty-input" id="d${num}-fl-strawberry" placeholder="0" min="0">
-                <span class="flavor-qty-label">Lemon</span><input type="number" class="flavor-qty-input" id="d${num}-fl-lemon" placeholder="0" min="0">
-                <span class="flavor-qty-label">Caramel</span><input type="number" class="flavor-qty-input" id="d${num}-fl-caramel" placeholder="0" min="0">
-                <span class="flavor-qty-label">Cookies & Cream</span><input type="number" class="flavor-qty-input" id="d${num}-fl-cookiescream" placeholder="0" min="0">
-                <span class="flavor-qty-label">Brown Sugar Cinnamon</span><input type="number" class="flavor-qty-input" id="d${num}-fl-brownsugarcinnamon" placeholder="0" min="0">
-                <span class="flavor-qty-label">Peach Cobbler</span><input type="number" class="flavor-qty-input" id="d${num}-fl-peachcobbler" placeholder="0" min="0">
-                <span class="flavor-qty-label">Surprise Me!</span><input type="number" class="flavor-qty-input" id="d${num}-fl-surprise" placeholder="0" min="0">
+                <span class="flavor-qty-label">Red Velvet</span><input type="number" class="flavor-qty-input" id="d${num}-fl-redvelvet" placeholder="0" min="0" oninput="updateFlavorCountFromEl(this)">
+                <span class="flavor-qty-label">Vanilla</span><input type="number" class="flavor-qty-input" id="d${num}-fl-vanilla" placeholder="0" min="0" oninput="updateFlavorCountFromEl(this)">
+                <span class="flavor-qty-label">Chocolate</span><input type="number" class="flavor-qty-input" id="d${num}-fl-chocolate" placeholder="0" min="0" oninput="updateFlavorCountFromEl(this)">
+                <span class="flavor-qty-label">Strawberry</span><input type="number" class="flavor-qty-input" id="d${num}-fl-strawberry" placeholder="0" min="0" oninput="updateFlavorCountFromEl(this)">
+                <span class="flavor-qty-label">Lemon</span><input type="number" class="flavor-qty-input" id="d${num}-fl-lemon" placeholder="0" min="0" oninput="updateFlavorCountFromEl(this)">
+                <span class="flavor-qty-label">Caramel</span><input type="number" class="flavor-qty-input" id="d${num}-fl-caramel" placeholder="0" min="0" oninput="updateFlavorCountFromEl(this)">
+                <span class="flavor-qty-label">Cookies & Cream</span><input type="number" class="flavor-qty-input" id="d${num}-fl-cookiescream" placeholder="0" min="0" oninput="updateFlavorCountFromEl(this)">
+                <span class="flavor-qty-label">Brown Sugar Cinnamon</span><input type="number" class="flavor-qty-input" id="d${num}-fl-brownsugarcinnamon" placeholder="0" min="0" oninput="updateFlavorCountFromEl(this)">
+                <span class="flavor-qty-label">Peach Cobbler</span><input type="number" class="flavor-qty-input" id="d${num}-fl-peachcobbler" placeholder="0" min="0" oninput="updateFlavorCountFromEl(this)">
+                <span class="flavor-qty-label">Surprise Me!</span><input type="number" class="flavor-qty-input" id="d${num}-fl-surprise" placeholder="0" min="0" oninput="updateFlavorCountFromEl(this)">
               </div>
             </div>
             <div>
@@ -1000,6 +1004,69 @@ Promo Code: ${promo || 'None'}
 ===================================`
     );
     window.open('mailto:vaughnsweetz@gmail.com?subject=' + subject + '&body=' + body);
+  }
+
+  // ── FLAVOR COUNT LOGIC ──
+  function updateFlavorMax(qtyInput) {
+    // Find which dessert number this belongs to
+    const id = qtyInput.id; // e.g. d1-qty
+    const num = id.replace('d','').replace('-qty','');
+    const max = parseInt(qtyInput.value) || 0;
+    const maxEl = document.getElementById('flavor-max-' + num);
+    const counterEl = document.getElementById('flavor-counter-' + num);
+    if (maxEl) {
+      maxEl.textContent = max > 0 ? max : '—';
+    }
+    updateFlavorCount(null, num);
+  }
+
+  function updateFlavorCountFromEl(input) {
+    const id = input.id; // e.g. d1-fl-redvelvet
+    const parts = id.split('-fl-');
+    const num = parts[0].replace('d','');
+    updateFlavorCount(input, num);
+  }
+
+  function updateFlavorCount(input, num) {
+    const flavors = ['redvelvet','vanilla','chocolate','strawberry','lemon','caramel','cookiescream','brownsugarcinnamon','peachcobbler','surprise'];
+    let total = 0;
+    flavors.forEach(f => {
+      const el = document.getElementById('d' + num + '-fl-' + f);
+      if (el) total += parseInt(el.value) || 0;
+    });
+
+    const maxInput = document.getElementById('d' + num + '-qty');
+    const max = parseInt(maxInput?.value) || 0;
+
+    const usedEl = document.getElementById('flavor-used-' + num);
+    const statusEl = document.getElementById('flavor-status-' + num);
+    const counterEl = document.getElementById('flavor-counter-' + num);
+
+    if (usedEl) usedEl.textContent = total;
+
+    if (max > 0) {
+      if (total > max) {
+        // Over limit — revert the last input and warn
+        if (input) {
+          const excess = total - max;
+          const current = parseInt(input.value) || 0;
+          input.value = Math.max(0, current - excess);
+          total = max;
+          if (usedEl) usedEl.textContent = total;
+        }
+        if (counterEl) counterEl.style.borderColor = 'var(--error)';
+        if (statusEl) { statusEl.textContent = '⚠ Exceeds Total!'; statusEl.style.color = 'var(--error)'; }
+      } else if (total === max) {
+        if (counterEl) counterEl.style.borderColor = 'var(--success)';
+        if (statusEl) { statusEl.textContent = '✓ Perfect!'; statusEl.style.color = 'var(--success)'; }
+      } else {
+        if (counterEl) counterEl.style.borderColor = 'var(--cream-dark)';
+        const remaining = max - total;
+        if (statusEl) { statusEl.textContent = remaining + ' remaining'; statusEl.style.color = '#888'; }
+      }
+    } else {
+      if (statusEl) { statusEl.textContent = 'Set quantity first'; statusEl.style.color = '#aaa'; }
+    }
   }
 
   function showSuccess(name, email, date, fulfillment, count) {
