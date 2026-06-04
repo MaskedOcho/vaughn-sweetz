@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Place Your Order | Vaughn Sweetz</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #1a1f6b;
+    --navy-dark: #0e1245;
+    --rose-gold: #c9956a;
+    --rose-gold-light: #e8c4a8;
+    --cream: #fbf3f0;
+    --cream-dark: #e2cec1;
+    --white: #ffffff;
+    --error: #c0392b;
+    --success: #27ae60;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Montserrat', sans-serif;
+    background: var(--cream);
+    color: var(--navy);
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  .form-header {
+    background: linear-gradient(135deg, var(--navy-dark), var(--navy));
+    padding: 48px 40px 60px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .form-header::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image: radial-gradient(circle at 20% 50%, rgba(201,149,106,0.15) 0%, transparent 50%),
+                      radial-gradient(circle at 80% 20%, rgba(201,149,106,0.1) 0%, transparent 40%);
+  }
+  .form-header::after {
+    content: '';
+    position: absolute; inset: 0;
+    background-image: radial-gradient(circle, rgba(201,149,106,0.2) 1px, transparent 1px);
+    background-size: 32px 32px; opacity: 0.4;
+  }
+  .header-content { position: relative; z-index: 2; }
+  .header-badge {
+    display: inline-block;
+    border: 1px solid rgba(201,149,106,0.4);
+    color: var(--rose-gold-light);
+    font-size: 0.65rem; font-weight: 600; letter-spacing: 0.25em;
+    text-transform: uppercase; padding: 7px 18px; border-radius: 50px;
+    margin-bottom: 20px;
+  }
+  .form-header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 900; color: var(--white); line-height: 1.1;
+  }
+  .form-header h1 em { font-style: italic; color: var(--rose-gold-light); }
+  .form-header p {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.15rem; color: rgba(255,255,255,0.65);
+    margin-top: 12px; font-style: italic;
+  }
+  .header-notice {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(201,149,106,0.15);
+    border: 1px solid rgba(201,149,106,0.3);
+    color: var(--rose-gold-light);
+    font-size: 0.7rem; font-weight: 600; letter-spacing: 0.1em;
+    padding: 8px 20px; border-radius: 2px; margin-top: 20px;
+  }
+
+  /* ── PROGRESS BAR ── */
+  .progress-wrap {
+    background: var(--white);
+    border-bottom: 1px solid var(--cream-dark);
+    padding: 0 40px;
+    position: sticky; top: 0; z-index: 50;
+    box-shadow: 0 2px 20px rgba(26,31,107,0.06);
+  }
+  .progress-steps {
+    max-width: 800px; margin: 0 auto;
+    display: flex; align-items: stretch;
+  }
+  .prog-step {
+    flex: 1; padding: 16px 12px;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    cursor: pointer; position: relative;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s; opacity: 0.4;
+  }
+  .prog-step.active { opacity: 1; border-bottom-color: var(--rose-gold); }
+  .prog-step.done { opacity: 0.7; border-bottom-color: var(--navy); }
+  .prog-num {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--cream-dark); color: var(--navy);
+    font-size: 0.65rem; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.3s;
+  }
+  .prog-step.active .prog-num { background: var(--rose-gold); color: var(--white); }
+  .prog-step.done .prog-num { background: var(--navy); color: var(--white); }
+  .prog-step.done .prog-num::after { content: '✓'; }
+  .prog-label {
+    font-size: 0.6rem; font-weight: 600; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--navy); text-align: center;
+  }
+
+  /* ── FORM CONTAINER ── */
+  .form-container {
+    max-width: 800px; margin: 0 auto;
+    padding: 48px 40px 80px;
+  }
+
+  /* ── STEP PANELS ── */
+  .step-panel { display: none; animation: fadeUp 0.4s ease; }
+  .step-panel.active { display: block; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+  .step-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem; font-weight: 700; color: var(--navy);
+    margin-bottom: 8px;
+  }
+  .step-title em { font-style: italic; color: var(--rose-gold); }
+  .step-sub {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1rem; color: #888; margin-bottom: 32px; font-style: italic;
+  }
+  .step-divider {
+    width: 50px; height: 2px;
+    background: linear-gradient(to right, var(--rose-gold), transparent);
+    margin-bottom: 32px;
+  }
+
+  /* ── FORM FIELDS ── */
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+  .field-row.single { grid-template-columns: 1fr; }
+  .field-group { display: flex; flex-direction: column; gap: 8px; }
+  .field-label {
+    font-size: 0.62rem; font-weight: 700; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--navy);
+  }
+  .field-label span { color: var(--rose-gold); }
+  .field-input, .field-select, .field-textarea {
+    background: var(--white); border: 1.5px solid var(--cream-dark);
+    border-radius: 3px; padding: 13px 16px;
+    color: var(--navy); font-family: 'Montserrat', sans-serif;
+    font-size: 0.85rem; outline: none; width: 100%;
+    transition: border-color 0.3s;
+  }
+  .field-input:focus, .field-select:focus, .field-textarea:focus {
+    border-color: var(--rose-gold);
+    box-shadow: 0 0 0 3px rgba(201,149,106,0.1);
+  }
+  .field-input.error, .field-select.error { border-color: var(--error); }
+  .field-error { font-size: 0.68rem; color: var(--error); display: none; }
+  .field-input.error + .field-error,
+  .field-select.error + .field-error { display: block; }
+  .field-textarea { resize: vertical; min-height: 100px; }
+  .field-select option { color: var(--navy); }
+
+  /* ── PRODUCT CARDS ── */
+  .product-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px; margin-bottom: 24px;
+  }
+  .product-card {
+    background: var(--white); border: 2px solid var(--cream-dark);
+    border-radius: 6px; padding: 24px 16px; text-align: center;
+    cursor: pointer; transition: all 0.3s; position: relative;
+  }
+  .product-card:hover { border-color: var(--rose-gold); transform: translateY(-3px); }
+  .product-card.selected {
+    border-color: var(--navy); background: rgba(26,31,107,0.04);
+  }
+  .product-card.selected::after {
+    content: '✓';
+    position: absolute; top: 10px; right: 12px;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--navy); color: var(--white);
+    font-size: 0.7rem; display: flex; align-items: center; justify-content: center;
+    display: flex;
+  }
+  .product-emoji { font-size: 2.4rem; margin-bottom: 10px; display: block; }
+  .product-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 0.95rem; font-weight: 700; color: var(--navy); margin-bottom: 6px;
+  }
+  .product-price {
+    font-size: 0.65rem; font-weight: 600; color: var(--rose-gold);
+    letter-spacing: 0.1em; text-transform: uppercase;
+  }
+
+  /* ── FLAVOR TAGS ── */
+  .flavor-grid {
+    display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px;
+  }
+  .flavor-tag {
+    background: var(--white); border: 1.5px solid var(--cream-dark);
+    border-radius: 50px; padding: 8px 18px;
+    font-size: 0.72rem; font-weight: 600; color: var(--navy);
+    cursor: pointer; transition: all 0.25s;
+  }
+  .flavor-tag:hover { border-color: var(--rose-gold); color: var(--rose-gold); }
+  .flavor-tag.selected {
+    background: var(--navy); border-color: var(--navy); color: var(--white);
+  }
+
+  /* ── OCCASION PILLS ── */
+  .occasion-grid {
+    display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px;
+  }
+  .occasion-pill {
+    background: var(--white); border: 1.5px solid var(--cream-dark);
+    border-radius: 4px; padding: 10px 20px;
+    font-size: 0.72rem; font-weight: 600; color: var(--navy);
+    cursor: pointer; transition: all 0.25s; display: flex; align-items: center; gap: 8px;
+  }
+  .occasion-pill:hover { border-color: var(--rose-gold); }
+  .occasion-pill.selected {
+    background: var(--navy); border-color: var(--navy); color: var(--white);
+  }
+
+  /* ── DELIVERY OPTIONS ── */
+  .delivery-options { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .delivery-card {
+    background: var(--white); border: 2px solid var(--cream-dark);
+    border-radius: 6px; padding: 24px; text-align: center;
+    cursor: pointer; transition: all 0.3s;
+  }
+  .delivery-card:hover { border-color: var(--rose-gold); }
+  .delivery-card.selected { border-color: var(--navy); background: rgba(26,31,107,0.04); }
+  .delivery-icon { font-size: 2rem; margin-bottom: 10px; display: block; }
+  .delivery-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem; font-weight: 700; color: var(--navy); margin-bottom: 4px;
+  }
+  .delivery-desc { font-size: 0.7rem; color: #888; }
+
+  /* ── PROMO CODE ── */
+  .promo-wrap {
+    background: var(--white); border: 1.5px solid var(--cream-dark);
+    border-radius: 4px; padding: 20px 24px; margin-bottom: 24px;
+  }
+  .promo-label {
+    font-size: 0.62rem; font-weight: 700; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--navy); margin-bottom: 12px;
+    display: block;
+  }
+  .promo-chips { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .promo-chip {
+    background: var(--cream); border: 1.5px solid var(--cream-dark);
+    border-radius: 2px; padding: 8px 16px;
+    font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em;
+    color: var(--navy); cursor: pointer; transition: all 0.25s;
+  }
+  .promo-chip:hover { border-color: var(--rose-gold); color: var(--rose-gold); }
+  .promo-chip.active { background: var(--rose-gold); border-color: var(--rose-gold); color: var(--white); }
+  .promo-input-wrap { display: flex; gap: 10px; }
+  .promo-input-wrap .field-input { flex: 1; }
+  .promo-apply {
+    background: var(--navy); color: var(--white);
+    border: none; border-radius: 3px; padding: 0 20px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em;
+    cursor: pointer; transition: background 0.3s; white-space: nowrap;
+  }
+  .promo-apply:hover { background: var(--rose-gold); }
+  .promo-success {
+    display: none; color: var(--success);
+    font-size: 0.72rem; font-weight: 600; margin-top: 10px;
+  }
+
+  /* ── ORDER SUMMARY ── */
+  .summary-card {
+    background: var(--white); border: 1px solid var(--cream-dark);
+    border-radius: 6px; overflow: hidden; margin-bottom: 24px;
+  }
+  .summary-header {
+    background: var(--navy); color: var(--white);
+    padding: 16px 24px;
+    font-size: 0.7rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase;
+  }
+  .summary-body { padding: 24px; }
+  .summary-row {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    padding: 10px 0; border-bottom: 1px solid var(--cream-dark);
+    font-size: 0.8rem;
+  }
+  .summary-row:last-child { border-bottom: none; }
+  .summary-key { color: #888; font-weight: 500; }
+  .summary-val { color: var(--navy); font-weight: 600; text-align: right; max-width: 60%; }
+
+  /* ── NAV BUTTONS ── */
+  .step-nav {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 40px; padding-top: 24px;
+    border-top: 1px solid var(--cream-dark);
+  }
+  .btn-back {
+    background: transparent; color: var(--navy);
+    border: 1.5px solid var(--cream-dark); border-radius: 3px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.72rem; font-weight: 600; letter-spacing: 0.12em;
+    text-transform: uppercase; padding: 13px 28px;
+    cursor: pointer; transition: all 0.3s;
+  }
+  .btn-back:hover { border-color: var(--navy); }
+  .btn-next {
+    background: var(--rose-gold); color: var(--white);
+    border: none; border-radius: 3px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.15em;
+    text-transform: uppercase; padding: 14px 36px;
+    cursor: pointer; transition: all 0.3s;
+    box-shadow: 0 4px 20px rgba(201,149,106,0.3);
+  }
+  .btn-next:hover { background: #b07d52; transform: translateY(-1px); }
+  .btn-submit {
+    background: var(--navy); color: var(--white);
+    border: none; border-radius: 3px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.15em;
+    text-transform: uppercase; padding: 16px 48px;
+    cursor: pointer; transition: all 0.3s;
+    box-shadow: 0 4px 20px rgba(26,31,107,0.2);
+  }
+  .btn-submit:hover { background: var(--rose-gold); transform: translateY(-1px); }
+
+  /* ── SUCCESS ── */
+  .success-screen {
+    display: none; text-align: center; padding: 80px 40px;
+    animation: fadeUp 0.6s ease;
+  }
+  .success-screen.show { display: block; }
+  .success-icon { font-size: 4rem; margin-bottom: 24px; }
+  .success-screen h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.2rem; font-weight: 900; color: var(--navy); margin-bottom: 16px;
+  }
+  .success-screen h2 em { font-style: italic; color: var(--rose-gold); }
+  .success-screen p { font-family: 'Cormorant Garamond', serif; font-size: 1.2rem; color: #666; line-height: 1.8; }
+  .success-details {
+    background: var(--white); border: 1px solid var(--cream-dark);
+    border-radius: 6px; padding: 28px; margin: 32px auto;
+    max-width: 480px; text-align: left;
+  }
+
+  @media (max-width: 640px) {
+    .form-container { padding: 32px 20px 60px; }
+    .field-row { grid-template-columns: 1fr; }
+    .delivery-options { grid-template-columns: 1fr; }
+    .product-grid { grid-template-columns: 1fr 1fr; }
+    .progress-wrap { padding: 0 16px; }
+    .prog-label { display: none; }
+    .form-header { padding: 32px 20px 48px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="form-header">
+  <div class="header-content">
+    <div class="header-badge">✦ Vaughn Sweetz · Order Form ✦</div>
+    <h1>Place Your <em>Order</em></h1>
+    <p>Fresh, custom, homemade — made just for you.</p>
+    <div class="header-notice">📅 Please order at least 3 days before your event</div>
+  </div>
+</div>
+
+<!-- PROGRESS -->
+<div class="progress-wrap">
+  <div class="progress-steps">
+    <div class="prog-step active" id="prog-1">
+      <div class="prog-num">1</div>
+      <div class="prog-label">Your Info</div>
+    </div>
+    <div class="prog-step" id="prog-2">
+      <div class="prog-num">2</div>
+      <div class="prog-label">Products</div>
+    </div>
+    <div class="prog-step" id="prog-3">
+      <div class="prog-num">3</div>
+      <div class="prog-label">Details</div>
+    </div>
+    <div class="prog-step" id="prog-4">
+      <div class="prog-num">4</div>
+      <div class="prog-label">Event</div>
+    </div>
+    <div class="prog-step" id="prog-5">
+      <div class="prog-num">5</div>
+      <div class="prog-label">Review</div>
+    </div>
+  </div>
+</div>
+
+<!-- FORM -->
+<div class="form-container">
+
+  <!-- STEP 1: Contact Info -->
+  <div class="step-panel active" id="step-1">
+    <h2 class="step-title">Let's start with <em>you</em></h2>
+    <p class="step-sub">We'll use this to confirm your order and keep you updated.</p>
+    <div class="step-divider"></div>
+
+    <div class="field-row">
+      <div class="field-group">
+        <label class="field-label">First Name <span>*</span></label>
+        <input type="text" class="field-input" id="firstName" placeholder="Your first name">
+        <span class="field-error">Please enter your first name</span>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Last Name <span>*</span></label>
+        <input type="text" class="field-input" id="lastName" placeholder="Your last name">
+        <span class="field-error">Please enter your last name</span>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field-group">
+        <label class="field-label">Email Address <span>*</span></label>
+        <input type="email" class="field-input" id="email" placeholder="you@email.com">
+        <span class="field-error">Please enter a valid email</span>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Phone Number <span>*</span></label>
+        <input type="tel" class="field-input" id="phone" placeholder="(704) 000-0000">
+        <span class="field-error">Please enter your phone number</span>
+      </div>
+    </div>
+
+    <div class="step-nav">
+      <div></div>
+      <button class="btn-next" onclick="goNext(1)">Continue →</button>
+    </div>
+  </div>
+
+  <!-- STEP 2: Products & Flavors -->
+  <div class="step-panel" id="step-2">
+    <h2 class="step-title">What would you <em>like?</em></h2>
+    <p class="step-sub">Select your product and preferred flavors.</p>
+    <div class="step-divider"></div>
+
+    <div class="field-label" style="margin-bottom:14px;">Select Product <span style="color:var(--rose-gold);">*</span></div>
+    <div class="product-grid">
+      <div class="product-card" onclick="selectProduct(this,'Cupcakes')">
+        <span class="product-emoji">🧁</span>
+        <div class="product-name">Cupcakes</div>
+        <div class="product-price">From $2.00 · Min. 6</div>
+      </div>
+      <div class="product-card" onclick="selectProduct(this,'Custom Cake')">
+        <span class="product-emoji">🎂</span>
+        <div class="product-name">Custom Cake</div>
+        <div class="product-price">Custom Pricing</div>
+      </div>
+      <div class="product-card" onclick="selectProduct(this,'Cheesecake')">
+        <span class="product-emoji">🍰</span>
+        <div class="product-name">Cheesecake</div>
+        <div class="product-price">From $30</div>
+      </div>
+      <div class="product-card" onclick="selectProduct(this,'Pie or Cobbler')">
+        <span class="product-emoji">🥧</span>
+        <div class="product-name">Pie / Cobbler</div>
+        <div class="product-price">From $30</div>
+      </div>
+      <div class="product-card" onclick="selectProduct(this,'Seasonal Sweetz')">
+        <span class="product-emoji">🌸</span>
+        <div class="product-name">Seasonal Sweetz</div>
+        <div class="product-price">Custom Pricing</div>
+      </div>
+      <div class="product-card" onclick="selectProduct(this,'Mix & Match')">
+        <span class="product-emoji">🎁</span>
+        <div class="product-name">Mix & Match</div>
+        <div class="product-price">Custom Pricing</div>
+      </div>
+    </div>
+
+    <div class="field-label" style="margin-bottom:14px;">Flavor Preferences <span style="color:var(--rose-gold);">*</span></div>
+    <div class="flavor-grid">
+      <div class="flavor-tag" onclick="toggleFlavor(this)">Red Velvet</div>
+      <div class="flavor-tag" onclick="toggleFlavor(this)">Vanilla</div>
+      <div class="flavor-tag" onclick="toggleFlavor(this)">Chocolate</div>
+      <div class="flavor-tag" onclick="toggleFlavor(this)">Strawberry</div>
+      <div class="flavor-tag" onclick="toggleFlavor(this)">Lemon</div>
+      <div class="flavor-tag" onclick="toggleFlavor(this)">Caramel</div>
+      <div class="flavor-tag" onclick="toggleFlavor(this)">Cookies & Cream</div>
+      <div class="flavor-tag" onclick="toggleFlavor(this)">Brown Sugar Cinnamon</div>
+      <div class="flavor-tag" onclick="toggleFlavor(this)">Peach Cobbler</div>
+      <div class="flavor-tag" onclick="toggleFlavor(this)">Surprise Me!</div>
+    </div>
+
+    <div class="field-row single">
+      <div class="field-group">
+        <label class="field-label">Quantity <span>*</span></label>
+        <input type="number" class="field-input" id="quantity" placeholder="e.g. 12" min="1">
+        <span class="field-error">Please enter a quantity</span>
+      </div>
+    </div>
+
+    <div class="step-nav">
+      <button class="btn-back" onclick="goBack(2)">← Back</button>
+      <button class="btn-next" onclick="goNext(2)">Continue →</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: Design & Special Instructions -->
+  <div class="step-panel" id="step-3">
+    <h2 class="step-title">Tell us your <em>vision</em></h2>
+    <p class="step-sub">Colors, themes, design details — the more you share, the better we can create.</p>
+    <div class="step-divider"></div>
+
+    <div class="field-row single">
+      <div class="field-group">
+        <label class="field-label">Design & Theme Notes</label>
+        <textarea class="field-textarea" id="designNotes" placeholder="e.g. Navy and gold theme, 'Class of 2026' toppers, red velvet base with vanilla frosting..."></textarea>
+      </div>
+    </div>
+    <div class="field-row single">
+      <div class="field-group">
+        <label class="field-label">Dietary Restrictions or Allergies</label>
+        <input type="text" class="field-input" id="allergies" placeholder="e.g. Nut-free, gluten-free, dairy-free...">
+      </div>
+    </div>
+    <div class="field-row single">
+      <div class="field-group">
+        <label class="field-label">Anything Else We Should Know?</label>
+        <textarea class="field-textarea" id="otherNotes" placeholder="Any other special requests or details..." style="min-height:80px;"></textarea>
+      </div>
+    </div>
+
+    <div class="step-nav">
+      <button class="btn-back" onclick="goBack(3)">← Back</button>
+      <button class="btn-next" onclick="goNext(3)">Continue →</button>
+    </div>
+  </div>
+
+  <!-- STEP 4: Event & Delivery -->
+  <div class="step-panel" id="step-4">
+    <h2 class="step-title">When & <em>how?</em></h2>
+    <p class="step-sub">Tell us about your event and how you'd like to receive your order.</p>
+    <div class="step-divider"></div>
+
+    <div class="field-label" style="margin-bottom:14px;">Occasion <span style="color:var(--rose-gold);">*</span></div>
+    <div class="occasion-grid" id="occasionGrid">
+      <div class="occasion-pill" onclick="selectOccasion(this)">🎂 Birthday</div>
+      <div class="occasion-pill" onclick="selectOccasion(this)">🎉 Holiday</div>
+      <div class="occasion-pill" onclick="selectOccasion(this)">👶 Baby Shower</div>
+      <div class="occasion-pill" onclick="selectOccasion(this)">🎓 Graduation</div>
+      <div class="occasion-pill" onclick="selectOccasion(this)">🌙 Night Out</div>
+      <div class="occasion-pill" onclick="selectOccasion(this)">💐 Bridal / Bachelorette</div>
+      <div class="occasion-pill" onclick="selectOccasion(this)">🧁 Just Because</div>
+      <div class="occasion-pill" onclick="selectOccasion(this)">🏢 Corporate</div>
+      <div class="occasion-pill" onclick="selectOccasion(this)">💍 Wedding</div>
+      <div class="occasion-pill" onclick="selectOccasion(this)">🎁 Other</div>
+    </div>
+
+    <div class="field-row">
+      <div class="field-group">
+        <label class="field-label">Event Date <span>*</span></label>
+        <input type="date" class="field-input" id="eventDate">
+        <span class="field-error">Please select your event date</span>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Preferred Pickup / Delivery Time</label>
+        <input type="time" class="field-input" id="eventTime">
+      </div>
+    </div>
+
+    <div class="field-label" style="margin-bottom:14px;">Pickup or Delivery? <span style="color:var(--rose-gold);">*</span></div>
+    <div class="delivery-options">
+      <div class="delivery-card" onclick="selectDelivery(this,'Pickup')">
+        <span class="delivery-icon">🏠</span>
+        <div class="delivery-title">Pickup</div>
+        <div class="delivery-desc">Pick up your order at the designated location</div>
+      </div>
+      <div class="delivery-card" onclick="selectDelivery(this,'Delivery')">
+        <span class="delivery-icon">🚗</span>
+        <div class="delivery-title">Delivery</div>
+        <div class="delivery-desc">We bring your Sweetz to you</div>
+      </div>
+    </div>
+
+    <div class="field-row single" id="deliveryAddressWrap" style="display:none;">
+      <div class="field-group">
+        <label class="field-label">Delivery Address <span>*</span></label>
+        <input type="text" class="field-input" id="deliveryAddress" placeholder="Street address, city, zip">
+        <span class="field-error">Please enter your delivery address</span>
+      </div>
+    </div>
+
+    <div class="step-nav">
+      <button class="btn-back" onclick="goBack(4)">← Back</button>
+      <button class="btn-next" onclick="goNext(4)">Continue →</button>
+    </div>
+  </div>
+
+  <!-- STEP 5: Review & Submit -->
+  <div class="step-panel" id="step-5">
+    <h2 class="step-title">Review your <em>order</em></h2>
+    <p class="step-sub">Double-check everything before submitting.</p>
+    <div class="step-divider"></div>
+
+    <div class="summary-card">
+      <div class="summary-header">📋 Order Summary</div>
+      <div class="summary-body" id="summaryBody">
+        <!-- populated by JS -->
+      </div>
+    </div>
+
+    <!-- Promo Code -->
+    <div class="promo-wrap">
+      <span class="promo-label">🏷 Promo Code</span>
+      <div class="promo-chips">
+        <div class="promo-chip" onclick="applyChip(this,'GRAD26')">GRAD26 — $2.60 Off</div>
+        <div class="promo-chip" onclick="applyChip(this,'DADS TURN')">DADS TURN — 10% Off</div>
+      </div>
+      <div class="promo-input-wrap">
+        <input type="text" class="field-input" id="promoCode" placeholder="Enter promo code">
+        <button class="promo-apply" onclick="applyPromo()">Apply</button>
+      </div>
+      <div class="promo-success" id="promoSuccess">✓ Promo code applied!</div>
+    </div>
+
+    <div class="step-nav">
+      <button class="btn-back" onclick="goBack(5)">← Back</button>
+      <button class="btn-submit" onclick="submitOrder()">✦ Submit Order Request ✦</button>
+    </div>
+  </div>
+
+  <!-- SUCCESS -->
+  <div class="success-screen" id="successScreen">
+    <div class="success-icon">🧁</div>
+    <h2>Order <em>Received!</em></h2>
+    <p>Thank you for choosing Vaughn Sweetz!<br>We'll reach out within 24 hours to confirm your order details.</p>
+    <div class="success-details" id="successDetails"></div>
+    <p style="font-size:0.78rem;color:#aaa;margin-top:16px;">Sweet celebrations start with Vaughn Sweetz. ♥</p>
+  </div>
+
+</div>
+
+<script>
+  // State
+  let currentStep = 1;
+  const totalSteps = 5;
+  const orderData = {
+    firstName: '', lastName: '', email: '', phone: '',
+    product: '', flavors: [], quantity: '',
+    designNotes: '', allergies: '', otherNotes: '',
+    occasion: '', eventDate: '', eventTime: '',
+    delivery: '', deliveryAddress: '',
+    promoCode: ''
+  };
+
+  // Check URL for promo code param
+  window.onload = () => {
+    const params = new URLSearchParams(window.location.search);
+    const promo = params.get('promoCode');
+    if (promo) {
+      document.getElementById('promoCode').value = promo;
+      orderData.promoCode = promo;
+      // highlight matching chip
+      document.querySelectorAll('.promo-chip').forEach(c => {
+        if (c.textContent.includes(promo)) c.classList.add('active');
+      });
+    }
+    // Set min date to 3 days from now
+    const minDate = new Date();
+    minDate.setDate(minDate.getDate() + 3);
+    document.getElementById('eventDate').min = minDate.toISOString().split('T')[0];
+  };
+
+  function goNext(step) {
+    if (!validateStep(step)) return;
+    collectStep(step);
+    if (step === 4) buildSummary();
+    setStep(step + 1);
+  }
+
+  function goBack(step) { setStep(step - 1); }
+
+  function setStep(n) {
+    document.getElementById('step-' + currentStep).classList.remove('active');
+    document.getElementById('prog-' + currentStep).classList.remove('active');
+    document.getElementById('prog-' + currentStep).classList.add('done');
+    if (n <= currentStep) {
+      for (let i = n; i <= currentStep; i++) {
+        document.getElementById('prog-' + i).classList.remove('done');
+      }
+    }
+    currentStep = n;
+    document.getElementById('step-' + currentStep).classList.add('active');
+    document.getElementById('prog-' + currentStep).classList.remove('done');
+    document.getElementById('prog-' + currentStep).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function validateStep(step) {
+    let valid = true;
+    if (step === 1) {
+      ['firstName','lastName','email','phone'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el.value.trim()) { el.classList.add('error'); valid = false; }
+        else el.classList.remove('error');
+      });
+    }
+    if (step === 2) {
+      if (!orderData.product) { alert('Please select a product.'); valid = false; }
+      else if (orderData.flavors.length === 0) { alert('Please select at least one flavor.'); valid = false; }
+      else if (!document.getElementById('quantity').value) {
+        document.getElementById('quantity').classList.add('error'); valid = false;
+      } else document.getElementById('quantity').classList.remove('error');
+    }
+    if (step === 4) {
+      if (!orderData.occasion) { alert('Please select an occasion.'); valid = false; }
+      else if (!document.getElementById('eventDate').value) {
+        document.getElementById('eventDate').classList.add('error'); valid = false;
+      } else if (!orderData.delivery) { alert('Please select pickup or delivery.'); valid = false; }
+      else if (orderData.delivery === 'Delivery' && !document.getElementById('deliveryAddress').value) {
+        document.getElementById('deliveryAddress').classList.add('error'); valid = false;
+      }
+    }
+    return valid;
+  }
+
+  function collectStep(step) {
+    if (step === 1) {
+      orderData.firstName = document.getElementById('firstName').value.trim();
+      orderData.lastName = document.getElementById('lastName').value.trim();
+      orderData.email = document.getElementById('email').value.trim();
+      orderData.phone = document.getElementById('phone').value.trim();
+    }
+    if (step === 2) {
+      orderData.quantity = document.getElementById('quantity').value;
+    }
+    if (step === 3) {
+      orderData.designNotes = document.getElementById('designNotes').value.trim();
+      orderData.allergies = document.getElementById('allergies').value.trim();
+      orderData.otherNotes = document.getElementById('otherNotes').value.trim();
+    }
+    if (step === 4) {
+      orderData.eventDate = document.getElementById('eventDate').value;
+      orderData.eventTime = document.getElementById('eventTime').value;
+      orderData.deliveryAddress = document.getElementById('deliveryAddress').value.trim();
+    }
+  }
+
+  function selectProduct(card, name) {
+    document.querySelectorAll('.product-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    orderData.product = name;
+  }
+
+  function toggleFlavor(tag) {
+    tag.classList.toggle('selected');
+    const flavor = tag.textContent.trim();
+    if (tag.classList.contains('selected')) {
+      orderData.flavors.push(flavor);
+    } else {
+      orderData.flavors = orderData.flavors.filter(f => f !== flavor);
+    }
+  }
+
+  function selectOccasion(pill) {
+    document.querySelectorAll('.occasion-pill').forEach(p => p.classList.remove('selected'));
+    pill.classList.add('selected');
+    orderData.occasion = pill.textContent.trim();
+  }
+
+  function selectDelivery(card, type) {
+    document.querySelectorAll('.delivery-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    orderData.delivery = type;
+    document.getElementById('deliveryAddressWrap').style.display = type === 'Delivery' ? 'block' : 'none';
+  }
+
+  function applyChip(chip, code) {
+    document.querySelectorAll('.promo-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    document.getElementById('promoCode').value = code;
+    orderData.promoCode = code;
+    document.getElementById('promoSuccess').style.display = 'block';
+  }
+
+  function applyPromo() {
+    const code = document.getElementById('promoCode').value.trim().toUpperCase();
+    const valid = ['GRAD26','DADS TURN','DADSTURN'];
+    if (valid.some(v => code.includes(v.replace(' ',''))) || valid.includes(code)) {
+      orderData.promoCode = code;
+      document.getElementById('promoSuccess').style.display = 'block';
+      document.querySelectorAll('.promo-chip').forEach(c => {
+        if (c.textContent.includes(code)) c.classList.add('active');
+      });
+    } else {
+      alert('Promo code not recognized. Please check and try again.');
+    }
+  }
+
+  function buildSummary() {
+    collectStep(4);
+    const d = orderData;
+    const rows = [
+      ['Name', d.firstName + ' ' + d.lastName],
+      ['Email', d.email],
+      ['Phone', d.phone],
+      ['Product', d.product],
+      ['Flavors', d.flavors.join(', ') || '—'],
+      ['Quantity', d.quantity],
+      ['Occasion', d.occasion || '—'],
+      ['Event Date', d.eventDate ? new Date(d.eventDate + 'T12:00:00').toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'}) : '—'],
+      ['Time', d.eventTime || '—'],
+      ['Fulfillment', d.delivery || '—'],
+      ['Address', d.deliveryAddress || (d.delivery === 'Pickup' ? 'Pickup' : '—')],
+      ['Design Notes', d.designNotes || '—'],
+      ['Allergies', d.allergies || 'None'],
+    ];
+    document.getElementById('summaryBody').innerHTML = rows.map(([k,v]) =>
+      `<div class="summary-row"><span class="summary-key">${k}</span><span class="summary-val">${v}</span></div>`
+    ).join('');
+  }
+
+  async function submitOrder() {
+    collectStep(5);
+    orderData.promoCode = document.getElementById('promoCode').value.trim();
+
+    const d = orderData;
+
+    // Show loading state
+    const submitBtn = document.querySelector('.btn-submit');
+    submitBtn.textContent = 'Submitting...';
+    submitBtn.disabled = true;
+
+    // Map our form data to Deftform field UUIDs
+    const payload = {
+      data: [
+        { uuid: "42214e78-11e3-407b-a132-f2b1b2bfe0dc", value: `${d.firstName} ${d.lastName}` },
+        { uuid: "71030d3b-08e6-4ff2-af13-1657febb07e7", value: d.email },
+        { uuid: "68766190-019f-4c69-87ba-60afcbcea9a0", value: d.phone },
+        { uuid: "40486b8a-a9df-4f6f-b5eb-46cfa855de15", value: d.product },
+        { uuid: "06114d17-98a8-4e0d-866d-3bc297859655", value: d.flavors.join(', ') },
+        { uuid: "91fa7e00-b58f-4393-906c-551f9e3064f6", value: d.quantity },
+        { uuid: "26e791e9-e76d-40a9-b129-fb145f7c2ff5", value: d.designNotes || '' },
+        { uuid: "c3155025-7e5d-4c1f-8b0f-11795236a7a4", value: d.allergies || '' },
+        { uuid: "ef5afe78-6e90-4da9-9ba5-7de2d10feabc", value: d.otherNotes || '' },
+        { uuid: "06ba3df6-c31b-420e-a9d0-a06f20ff0dd4", value: d.occasion },
+        { uuid: "ffe5d7f5-181f-4aa6-a98b-6aca687c1f3b", value: d.eventDate },
+        { uuid: "a587f1db-604c-4f20-855a-f3336fce5c53", value: d.eventTime || '' },
+        { uuid: "09557f89-06ee-4ac6-9c17-b8f4ded0412e", value: d.delivery },
+        { uuid: "9bbcc1ae-b136-4b54-a61b-bc891bf378b3", value: d.deliveryAddress || '' },
+        { uuid: "9fea0cac-c73f-4985-8c1a-fe57826f6e35", value: d.promoCode || '' },
+        { uuid: "3ede8167-2800-4ad8-8526-d4dc3b66bf94", value: d.otherNotes || '' },
+      ]
+    };
+
+    try {
+      const response = await fetch('https://deftform.com/api/forms/jttyvr/response', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer gFgFTAwnnbm0'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        showSuccess();
+      } else {
+        const err = await response.json();
+        console.error('Deftform error:', err);
+        // Fallback to email if API fails
+        sendEmailFallback(d);
+        showSuccess();
+      }
+    } catch (error) {
+      console.error('Submission error:', error);
+      // Fallback to email
+      sendEmailFallback(d);
+      showSuccess();
+    }
+  }
+
+  function sendEmailFallback(d) {
+    const subject = encodeURIComponent(`New Vaughn Sweetz Order — ${d.firstName} ${d.lastName}`);
+    const body = encodeURIComponent(
+`NEW ORDER — VAUGHN SWEETZ
+==========================
+Name: ${d.firstName} ${d.lastName}
+Email: ${d.email}
+Phone: ${d.phone}
+Product: ${d.product}
+Flavors: ${d.flavors.join(', ')}
+Quantity: ${d.quantity}
+Occasion: ${d.occasion}
+Event Date: ${d.eventDate}
+Time: ${d.eventTime || 'Not specified'}
+Fulfillment: ${d.delivery}
+Address: ${d.deliveryAddress || 'N/A'}
+Design Notes: ${d.designNotes || 'None'}
+Allergies: ${d.allergies || 'None'}
+Other Notes: ${d.otherNotes || 'None'}
+Promo Code: ${d.promoCode || 'None'}
+==========================
+Submitted via VaughnSweetz.com`
+    );
+    window.open(`mailto:vaughnsweetz@gmail.com?subject=${subject}&body=${body}`);
+  }
+
+  function showSuccess() {
+    const d = orderData;
+    document.getElementById('step-5').classList.remove('active');
+    const sc = document.getElementById('successScreen');
+    sc.classList.add('show');
+    document.getElementById('successDetails').innerHTML = `
+      <div class="summary-row"><span class="summary-key">Name</span><span class="summary-val">${d.firstName} ${d.lastName}</span></div>
+      <div class="summary-row"><span class="summary-key">Product</span><span class="summary-val">${d.product}</span></div>
+      <div class="summary-row"><span class="summary-key">Flavors</span><span class="summary-val">${d.flavors.join(', ')}</span></div>
+      <div class="summary-row"><span class="summary-key">Quantity</span><span class="summary-val">${d.quantity}</span></div>
+      <div class="summary-row"><span class="summary-key">Event Date</span><span class="summary-val">${d.eventDate}</span></div>
+      <div class="summary-row"><span class="summary-key">Email</span><span class="summary-val">${d.email}</span></div>
+    `;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+</body>
+</html>
