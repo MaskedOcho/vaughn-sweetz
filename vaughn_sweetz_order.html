@@ -400,7 +400,20 @@
         </div>
         <div class="field-group">
           <label class="field-label">Event Type / Occasion</label>
-          <input type="text" class="field-input" id="occasion" placeholder="Your answer">
+          <select class="field-select" id="occasion">
+            <option value="">Choose one</option>
+            <option>Birthday</option>
+            <option>Holiday</option>
+            <option>Baby Shower</option>
+            <option>Graduation</option>
+            <option>Night Out</option>
+            <option>Bridal Shower / Bachelorette</option>
+            <option>Just Because</option>
+            <option>Corporate</option>
+            <option>Wedding</option>
+            <option>Anniversary</option>
+            <option>Other</option>
+          </select>
         </div>
       </div>
       <!-- Delivery Address (conditional) -->
@@ -936,48 +949,56 @@
     const promo = document.getElementById('promoCode').value.trim();
     const address = document.getElementById('deliveryAddress').value.trim() || document.getElementById('deliveryAddress2').value.trim();
 
-    // ── DEFTFORM API PAYLOAD ──
+    // ── DEFTFORM API PAYLOAD (correct object format per docs) ──
     const payload = {
-      data: [
-        { uuid: "42214e78-11e3-407b-a132-f2b1b2bfe0dc", value: name },
-        { uuid: "71030d3b-08e6-4ff2-af13-1657febb07e7", value: email },
-        { uuid: "68766190-019f-4c69-87ba-60afcbcea9a0", value: phone },
-        { uuid: "40486b8a-a9df-4f6f-b5eb-46cfa855de15", value: dessertsText },
-        { uuid: "06114d17-98a8-4e0d-866d-3bc297859655", value: `${dessertCount} item(s)` },
-        { uuid: "91fa7e00-b58f-4393-906c-551f9e3064f6", value: dessertCount.toString() },
-        { uuid: "26e791e9-e76d-40a9-b129-fb145f7c2ff5", value: dessertsText },
-        { uuid: "c3155025-7e5d-4c1f-8b0f-11795236a7a4", value: allergies },
-        { uuid: "ef5afe78-6e90-4da9-9ba5-7de2d10feabc", value: specialReq },
-        { uuid: "06ba3df6-c31b-420e-a9d0-a06f20ff0dd4", value: occasion },
-        { uuid: "ffe5d7f5-181f-4aa6-a98b-6aca687c1f3b", value: date },
-        { uuid: "a587f1db-604c-4f20-855a-f3336fce5c53", value: time },
-        { uuid: "09557f89-06ee-4ac6-9c17-b8f4ded0412e", value: fulfillment },
-        { uuid: "9bbcc1ae-b136-4b54-a61b-bc891bf378b3", value: address },
-        { uuid: "9fea0cac-c73f-4985-8c1a-fe57826f6e35", value: promo },
-        { uuid: "3ede8167-2800-4ad8-8526-d4dc3b66bf94", value: specialReq },
-      ]
+      data: {
+        "42214e78-11e3-407b-a132-f2b1b2bfe0dc": name,
+        "71030d3b-08e6-4ff2-af13-1657febb07e7": email,
+        "68766190-019f-4c69-87ba-60afcbcea9a0": phone,
+        "40486b8a-a9df-4f6f-b5eb-46cfa855de15": dessertsText,
+        "06114d17-98a8-4e0d-866d-3bc297859655": `${dessertCount} item(s)`,
+        "91fa7e00-b58f-4393-906c-551f9e3064f6": dessertCount.toString(),
+        "26e791e9-e76d-40a9-b129-fb145f7c2ff5": dessertsText,
+        "c3155025-7e5d-4c1f-8b0f-11795236a7a4": allergies,
+        "ef5afe78-6e90-4da9-9ba5-7de2d10feabc": specialReq,
+        "06ba3df6-c31b-420e-a9d0-a06f20ff0dd4": occasion,
+        "ffe5d7f5-181f-4aa6-a98b-6aca687c1f3b": date,
+        "a587f1db-604c-4f20-855a-f3336fce5c53": time,
+        "09557f89-06ee-4ac6-9c17-b8f4ded0412e": fulfillment,
+        "9bbcc1ae-b136-4b54-a61b-bc891bf378b3": address,
+        "9fea0cac-c73f-4985-8c1a-fe57826f6e35": promo,
+        "3ede8167-2800-4ad8-8526-d4dc3b66bf94": specialReq
+      }
     };
 
+    // ── DEFTFORM API (correct v1 endpoint + object format) ──
+    // NOTE: API submissions also trigger email fallback since Deftform API
+    // does NOT send email notifications — email is the primary notification method
     try {
-      const res = await fetch('https://deftform.com/api/forms/jttyvr/response', {
+      const res = await fetch('https://deftform.com/api/v1/forms/jttyvr/response', {
         method: 'POST',
+        mode: 'cors',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer gFgFTAwnnbm0'
+          'Authorization': 'Bearer gFgFTAwnnbm0',
+          'Accept': 'application/json'
         },
         body: JSON.stringify(payload)
       });
 
       if (res.ok) {
-        showSuccess(name, email, date, fulfillment, dessertCount);
+        console.log('Deftform submission successful');
       } else {
-        emailFallback(name, email, phone, fulfillment, date, time, occasion, dessertsText, specialReq, allergies, promo, address);
-        showSuccess(name, email, date, fulfillment, dessertCount);
+        const errText = await res.text();
+        console.error('Deftform error:', res.status, errText);
       }
     } catch(e) {
-      emailFallback(name, email, phone, fulfillment, date, time, occasion, dessertsText, specialReq, allergies, promo, address);
-      showSuccess(name, email, date, fulfillment, dessertCount);
+      console.error('Deftform API error:', e);
     }
+
+    // Always send email notification since Deftform API does not trigger emails
+    emailFallback(name, email, phone, fulfillment, date, time, occasion, dessertsText, specialReq, allergies, promo, address);
+    showSuccess(name, email, date, fulfillment, dessertCount);
   }
 
   function emailFallback(name, email, phone, fulfillment, date, time, occasion, desserts, special, allergies, promo, address) {
