@@ -528,15 +528,28 @@ function toggleColor(gridId, color, el) {
 
 // ─── SUBS HTML ───────────────────────────────────────────────
 function subsHTML(n, prefix) {
-  let h = `<div class="subs-wrap"><div class="subs-title">Substitutions (Optional)</div>`;
-  Object.entries(SUBS).forEach(([cat, opts_]) => {
-    h += `<div class="subs-group"><div class="subs-group-label">${cat}</div>
-    <select class="fs" id="${prefix}-sub-${cat.toLowerCase()}" style="font-size:0.75rem;padding:7px 10px;">
-      <option value="">No substitution</option>
-      '+opts_.map(function(o){return '<option>'+o+'</option>';}).join('')+'
-    </select></div>`;
+  var h = '<div class="subs-wrap">';
+  h += '<div class="subs-title">Substitutions (Optional)</div>';
+  h += '<div class="fnote" style="margin-bottom:10px;">Flour sub: +$5 &nbsp;·&nbsp; Sugar sub: +$5 &nbsp;·&nbsp; Milk sub: +$1-$2 &nbsp;·&nbsp; Oil sub: included</div>';
+  var subsData = {
+    'Flour': { opts: ['Gluten-Free', 'Almond', 'Cassava'], price: '+$5' },
+    'Sugar': { opts: ['Monk Fruit', 'Allulose', 'Granulated Sweetener', 'Maple Syrup', "Confectioners' Sugar"], price: '+$5' },
+    'Milk':  { opts: ['Soy', 'Almond', 'Oat'], price: '+$1-$2' },
+    'Oil':   { opts: ['Olive', 'Canola'], price: 'included' }
+  };
+  Object.keys(subsData).forEach(function(cat) {
+    var info = subsData[cat];
+    var catId = prefix + '-sub-' + cat.toLowerCase();
+    h += '<div class="subs-group">';
+    h += '<div class="subs-group-label">' + cat + ' <span style="color:var(--rose-gold);font-size:0.58rem;">(' + info.price + ')</span></div>';
+    h += '<select class="fs" id="' + catId + '" onchange="calcPrice(' + n + ')" style="font-size:0.75rem;padding:7px 10px;">';
+    h += '<option value="">No substitution</option>';
+    info.opts.forEach(function(o) {
+      h += '<option value="' + o + '">' + o + '</option>';
+    });
+    h += '</select></div>';
   });
-  h += `</div>`;
+  h += '</div>';
   return h;
 }
 
@@ -547,7 +560,14 @@ function cupcakeFields(n) {
   <div class="fg"><label class="fl">Step 1 — Cupcake Type <span class="req">*</span></label>
     <select class="fs" id="cc-type-${n}" onchange="onCCType(${n})">
       <option value="">Choose one</option>
-      <option>Normal</option><option>Gluten-Free</option><option>Vegan</option>
+      <option>Normal</option>
+      <option>Gluten-Free (+$5/dz)</option>
+      <option>Vegan (+$6/dz)</option>
+      <option>Sugar-Free (+$5/dz)</option>
+      <option>Gluten-Free + Vegan (+$10/dz)</option>
+      <option>Gluten-Free + Sugar-Free (+$10/dz)</option>
+      <option>Vegan + Sugar-Free (+$10/dz)</option>
+      <option>Gluten-Free + Vegan + Sugar-Free (+$15/dz)</option>
     </select></div>
 
   <!-- STEP 2: SIZE -->
@@ -652,14 +672,26 @@ function onCCSize(n) {
   const qtyEl = document.getElementById('cc-qty-'+n);
   const hint = document.getElementById('cc-qty-hint-'+n);
   qtyEl.innerHTML = '';
+  const ccType = document.getElementById('cc-type-'+n)?.value || '';
+  const isGFVegan = ccType && ccType !== 'Normal';
+  const gfNote = document.getElementById('cc-gf-vegan-note-'+n);
+  if(gfNote) gfNote.style.display = isGFVegan ? 'block' : 'none';
   if(size === 'deluxe') {
     qtyEl.innerHTML = '<option value="12">One Dozen (12) — Fixed</option>';
     hint.textContent = 'Sweet Deluxe Box is fixed at one dozen.';
   } else if(size === 'regular') {
-    qtyEl.innerHTML = '<option value="">Choose one</option><option value="6">Half Dozen (6)</option><option value="12">One Dozen (12)</option><option value="24">Two Dozen (24)</option><option value="36">Three Dozen (36)</option><option value="48">Four Dozen (48)</option><option value="special">Five Dozen+ (Special Request)</option>';
+    if(isGFVegan) {
+      qtyEl.innerHTML = '<option value="">Choose one</option><option value="12">One Dozen (12)</option><option value="24">Two Dozen (24)</option><option value="36">Three Dozen (36)</option><option value="48">Four Dozen (48)</option><option value="special">Five Dozen+ (Special Request)</option>';
+    } else {
+      qtyEl.innerHTML = '<option value="">Choose one</option><option value="6">Half Dozen (6)</option><option value="12">One Dozen (12)</option><option value="24">Two Dozen (24)</option><option value="36">Three Dozen (36)</option><option value="48">Four Dozen (48)</option><option value="special">Five Dozen+ (Special Request)</option>';
+    }
     hint.textContent = 'Five dozen or more is a special request.';
   } else if(size === 'jumbo') {
-    qtyEl.innerHTML = '<option value="">Choose one</option><option value="6">Half Dozen (6)</option><option value="12">One Dozen (12)</option><option value="24">Two Dozen (24)</option><option value="special">More than 2 Dozen (Special Request)</option>';
+    if(isGFVegan) {
+      qtyEl.innerHTML = '<option value="">Choose one</option><option value="12">One Dozen (12)</option><option value="24">Two Dozen (24)</option><option value="special">More than 2 Dozen (Special Request)</option>';
+    } else {
+      qtyEl.innerHTML = '<option value="">Choose one</option><option value="6">Half Dozen (6)</option><option value="12">One Dozen (12)</option><option value="24">Two Dozen (24)</option><option value="special">More than 2 Dozen (Special Request)</option>';
+    }
     hint.textContent = 'More than two dozen is a special request.';
   }
   showStep(n,'cc-qty-wrap',true);
@@ -960,7 +992,7 @@ function calcPrice(n) {
     else if(size==='jumbo' && qty>0) price = PRICES.cupcake.jumbo * qty;
     // Filling upcharges
     const flavs = getCCFlavors(n);
-    flavs.forEach((_,i) => {
+    flavs.forEach(function(_,i) {
       const fill = document.getElementById('cc-fill-'+n+'-'+i)?.value;
       if(fill && fill!=='None' && !['Vanilla Buttercream','Chocolate Buttercream','Cream Cheese'].includes(fill)) {
         if(size!=='deluxe') price += 3;
@@ -969,6 +1001,23 @@ function calcPrice(n) {
     // Alcohol
     const alc = document.getElementById('cc-alc-'+n)?.value;
     if(alc==='yes') price += 10;
+    // Substitution upcharges
+    const flourSub = document.getElementById('cc-'+n+'-sub-flour')?.value;
+    const sugarSub = document.getElementById('cc-'+n+'-sub-sugar')?.value;
+    const milkSub = document.getElementById('cc-'+n+'-sub-milk')?.value;
+    if(flourSub) price += 5;
+    if(sugarSub) price += 5;
+    if(milkSub) price += 1.5;
+    // Cupcake type upcharges (per dozen)
+    const ccType = document.getElementById('cc-type-'+n)?.value;
+    const dozens = size==='deluxe' ? 1 : Math.ceil((parseInt(document.getElementById('cc-qty-'+n)?.value)||0)/12);
+    if(ccType==='Gluten-Free') price += 5 * dozens;
+    else if(ccType==='Vegan') price += 6 * dozens;
+    else if(ccType==='Sugar-Free') price += 5 * dozens;
+    else if(ccType==='Gluten-Free + Vegan') price += 10 * dozens;
+    else if(ccType==='Gluten-Free + Sugar-Free') price += 10 * dozens;
+    else if(ccType==='Vegan + Sugar-Free') price += 10 * dozens;
+    else if(ccType==='Gluten-Free + Vegan + Sugar-Free') price += 15 * dozens;
   } else if(cat==='cake') {
     const shape = document.getElementById('ck-shape-'+n)?.value;
     let baseKey = '';
@@ -1019,44 +1068,89 @@ function updateSummary() {
 
     let name = '', details = '';
     if(cat==='cupcake') {
-      const size = document.getElementById('cc-size-'+n)?.options[document.getElementById('cc-size-'+n)?.selectedIndex]?.text || '';
-      const qty = document.getElementById('cc-qty-'+n)?.options[document.getElementById('cc-qty-'+n)?.selectedIndex]?.text || '';
+      const sizeEl = document.getElementById('cc-size-'+n);
+      const size = sizeEl?.options[sizeEl?.selectedIndex]?.text || '';
+      const qtyEl = document.getElementById('cc-qty-'+n);
+      const qty = qtyEl?.options[qtyEl?.selectedIndex]?.text || '';
       const f1 = document.getElementById('cc-flav1-'+n)?.value || '';
       const f2 = document.getElementById('cc-flav2-'+n)?.value || '';
       const f3 = document.getElementById('cc-flav3-'+n)?.value || '';
       const frost = document.getElementById('cc-frost-'+n+'-0')?.value || '';
       const alc = document.getElementById('cc-alc-'+n)?.value;
+      // Toppings
+      const tops = [];
+      for(let fi=0; fi<3; fi++) {
+        for(let ti=1; ti<=2; ti++) {
+          const tv = document.getElementById('cc-top-'+n+'-'+fi+'-'+ti)?.value;
+          if(tv && tv!=='None') tops.push(tv);
+        }
+      }
+      // Frosting color
+      const frostColorEls = document.querySelectorAll('#cc-frost-color-grid-'+n+' .color-swatch.selected');
+      const frostColors = Array.from(frostColorEls).map(function(el) {
+        return el.parentElement.querySelector('.color-swatch-label')?.textContent || '';
+      }).filter(Boolean);
+      // Subs
+      const flourSub = document.getElementById('cc-'+n+'-sub-flour')?.value;
+      const sugarSub = document.getElementById('cc-'+n+'-sub-sugar')?.value;
+      const milkSub = document.getElementById('cc-'+n+'-sub-milk')?.value;
       name = 'Cupcakes';
-      if(size) details += `• Size: ${size.split('—')[0].trim()}<br>`;
-      if(qty) details += `• Quantity: ${qty.split('(')[0].trim()}<br>`;
+      if(size) details += '• Size: ' + size.split('—')[0].trim() + '<br>';
+      if(qty) details += '• Quantity: ' + qty.split('(')[0].trim() + '<br>';
       const flavors = [f1,f2,f3].filter(Boolean).join(', ');
-      if(flavors) details += `• Flavor(s): ${flavors}<br>`;
-      if(frost) details += `• Frosting: ${frost}<br>`;
-      if(alc==='yes') { const alcType = document.getElementById('cc-alc-type-'+n)?.value; details += `• Alcohol: ${alcType||'Yes'} (+$10)<br>`; }
+      if(flavors) details += '• Flavor(s): ' + flavors + '<br>';
+      if(frost) details += '• Frosting: ' + frost + '<br>';
+      if(frostColors.length) details += '• Frosting Color: ' + frostColors.join(', ') + '<br>';
+      if(tops.length) details += '• Toppings: ' + [...new Set(tops)].join(', ') + '<br>';
+      if(alc==='yes') {
+        const alcType = document.getElementById('cc-alc-type-'+n)?.value;
+        details += '• Alcohol: ' + (alcType||'Yes') + ' (+$10)<br>';
+      }
+      if(flourSub) details += '• Flour Sub: ' + flourSub + ' (+$5)<br>';
+      if(sugarSub) details += '• Sugar Sub: ' + sugarSub + ' (+$5)<br>';
+      if(milkSub) details += '• Milk Sub: ' + milkSub + ' (+$1.50)<br>';
     } else if(cat==='cake') {
       const shape = document.getElementById('ck-shape-'+n)?.value || '';
-      const size = document.getElementById('ck-size-'+n)?.options[document.getElementById('ck-size-'+n)?.selectedIndex]?.text || '';
+      const ckSizeEl = document.getElementById('ck-size-'+n);
+      const size = ckSizeEl?.options[ckSizeEl?.selectedIndex]?.text || '';
       const f1 = document.getElementById('ck-flav1-'+n)?.value || '';
       const f2 = document.getElementById('ck-flav2-'+n)?.value || '';
       const frost = document.getElementById('ck-frost-'+n)?.value || '';
+      const fill = document.getElementById('ck-fill-'+n)?.value || '';
+      const top1 = document.getElementById('ck-top1-'+n)?.value || '';
+      const top2 = document.getElementById('ck-top2-'+n)?.value || '';
+      const ckColorEls = document.querySelectorAll('#ck-frost-color-'+n+' .color-swatch.selected');
+      const ckColors = Array.from(ckColorEls).map(function(el) {
+        return el.parentElement.querySelector('.color-swatch-label')?.textContent || '';
+      }).filter(Boolean);
       name = shape ? shape.charAt(0).toUpperCase()+shape.slice(1)+' Cake' : 'Cake';
-      if(size) details += `• Size: ${size.split('—')[0].trim()}<br>`;
+      if(size) details += '• Size: ' + size.split('—')[0].trim() + '<br>';
       const flavors = [f1,f2].filter(Boolean).join(' + ');
-      if(flavors) details += `• Flavor: ${flavors}<br>`;
-      if(frost) details += `• Frosting: ${frost}<br>`;
+      if(flavors) details += '• Flavor: ' + flavors + '<br>';
+      if(fill && fill!=='None') details += '• Filling: ' + fill + '<br>';
+      if(frost) details += '• Frosting: ' + frost + '<br>';
+      if(ckColors.length) details += '• Frosting Color: ' + ckColors.join(', ') + '<br>';
+      const ckTops = [top1,top2].filter(function(t){return t&&t!=='None';});
+      if(ckTops.length) details += '• Toppings: ' + ckTops.join(', ') + '<br>';
     } else if(cat==='cheesecake') {
-      const size = document.getElementById('ches-size-'+n)?.value || '';
-      const qty = document.getElementById('ches-qty-'+n)?.value || '';
-      const flav = document.getElementById('ches-flav-'+n)?.value || '';
-      const crust = document.getElementById('ches-crust-'+n)?.value || '';
+      const chesSize = document.getElementById('ches-size-'+n)?.value || '';
+      const chesQty = document.getElementById('ches-qty-'+n)?.value || '';
+      const chesFlav = document.getElementById('ches-flav-'+n)?.value || '';
+      const chesCrust = document.getElementById('ches-crust-'+n)?.value || '';
+      const chesTop = document.getElementById('ches-top-'+n)?.value || '';
       name = 'Cheesecake';
-      if(size) details += `• Size: ${size}<br>`;
-      if(qty) details += `• Quantity: ${qty}<br>`;
-      if(flav) details += `• Flavor: ${flav}<br>`;
-      if(crust) details += `• Crust: ${crust}<br>`;
+      if(chesSize) details += '• Size: ' + chesSize + '<br>';
+      if(chesQty) details += '• Quantity: ' + chesQty + '<br>';
+      if(chesFlav) details += '• Flavor: ' + chesFlav + '<br>';
+      if(chesCrust) details += '• Crust: ' + chesCrust + '<br>';
+      if(chesTop && chesTop!=='None') details += '• Topping: ' + chesTop + '<br>';
     } else if(cat==='pie') {
-      const type = document.getElementById('pie-type-'+n)?.value || '';
-      name = type || 'Pie / Cobbler';
+      const pieType = document.getElementById('pie-type-'+n)?.value || '';
+      const pieSize = document.getElementById('pie-size-'+n)?.value || '';
+      const pieTop = document.getElementById('pie-top-'+n)?.value || '';
+      name = pieType || 'Pie / Cobbler';
+      if(pieSize) details += '• Size: ' + pieSize + '<br>';
+      if(pieTop && pieTop!=='None') details += '• Topping: ' + pieTop + '<br>';
     }
 
     html += `<div class="sum-item">
@@ -1074,12 +1168,12 @@ function updateSummary() {
     const tax = subtotal * 0.07;
     const total = subtotal + delivFee + tax;
     const deposit = total * 0.5;
-    html += `<div class="sum-totals">
-      <div class="sum-row"><span>Subtotal</span><span>$${subtotal.toFixed(2)}</span></div>
-      ${delivFee>0?'<div class="sum-row"><span>Delivery Fee</span><span>$20.00</span></div>':''}
-      <div class="sum-row"><span>Tax (7%)</span><span>$${tax.toFixed(2)}</span></div>
-      <div class="sum-row tot"><span>Total</span><span>$${total.toFixed(2)}</span></div>
-    </div>`;
+    html += '<div class="sum-totals">';
+    html += '<div class="sum-row"><span>Subtotal</span><span>$'+subtotal.toFixed(2)+'</span></div>';
+    if(delivFee>0) html += '<div class="sum-row"><span>Delivery Fee</span><span>$20.00</span></div>';
+    html += '<div class="sum-row"><span>Tax (7%)</span><span>$'+tax.toFixed(2)+'</span></div>';
+    html += '<div class="sum-row tot"><span>Total</span><span>$'+total.toFixed(2)+'</span></div>';
+    html += '</div>';
     sumBody.innerHTML = html;
     document.getElementById('totalBox').classList.remove('hidden');
     document.getElementById('depBox').classList.remove('hidden');
