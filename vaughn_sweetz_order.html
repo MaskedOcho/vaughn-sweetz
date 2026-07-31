@@ -362,11 +362,9 @@ const FROSTING_OPTS = [
 ];
 const FLAVOR_OPTS = [
   'Chocolate','Vanilla','Red Velvet','Red Velvet w/ Oreos',
-  'Chocolate Espresso','Marble','Funfetti','White Chocolate',
+  'Chocolate Espresso','Marble','Funfetti',
   'Pound Cake','Lemon Pound Cake','Honey Bun Cake','Cookie Butter',
-  'Oreo','Golden Oreo','Brown Butter','Chocolate Peanut Butter',
-  'Pistachio','Carrot','German Chocolate','Chocolate Raspberry',
-  'Mocha','Mango','Strawberry'
+  'Strawberry'
 ];
 const FILLING_OPTS = [
   'None',
@@ -397,11 +395,9 @@ const SUBS = {
 };
 const CAKE_FLAVORS = [
   'Chocolate','Vanilla','Red Velvet','Red Velvet w/ Oreos',
-  'Chocolate Espresso','Marble','Funfetti','White Chocolate',
+  'Chocolate Espresso','Marble','Funfetti',
   'Pound Cake','Lemon Pound Cake','Honey Bun Cake','Cookie Butter',
-  'Oreo','Golden Oreo','Brown Butter','Chocolate Peanut Butter',
-  'Pistachio','Carrot','German Chocolate','Chocolate Raspberry',
-  'Mocha','Mango','Strawberry'
+  'Strawberry'
 ];
 const CAKE_FROSTING = [
   'Cream Cheese Frosting','Vanilla Buttercream Frosting','Chocolate Buttercream',
@@ -793,8 +789,8 @@ function onCCSize(n) {
   const gfNote = document.getElementById('cc-gf-vegan-note-'+n);
   if(gfNote) gfNote.style.display = isGFVegan ? 'block' : 'none';
   if(size === 'deluxe') {
-    qtyEl.innerHTML = '<option value="6">Half Dozen (6) — $18</option><option value="12">One Dozen (12) — $32</option><option value="24">Two Dozen (24) — $50</option><option value="36">Three Dozen (36) — $65</option><option value="48">Four Dozen (48) — $80</option><option value="60">Five Dozen (60) — $95</option>';
-    hint.textContent = 'Sweetz Deluxe Box — choose your quantity.';
+    qtyEl.innerHTML = '<option value="12" selected>One Dozen (12)</option>';
+    hint.textContent = 'Sweetz Deluxe Box — one dozen, $50.';
   } else if(size === 'regular') {
     if(isGFVegan) {
       qtyEl.innerHTML = '<option value="">Choose one</option><option value="12">One Dozen (12)</option><option value="24">Two Dozen (24)</option><option value="36">Three Dozen (36)</option><option value="48">Four Dozen (48)</option><option value="special">Five Dozen+ (Special Request)</option>';
@@ -818,7 +814,7 @@ function onCCSize(n) {
   calcPrice(n);
   showStep(n,'cc-fill-wrap',true);
   showStep(n,'cc-frost-wrap',true);
-  showStep(n,'cc-frost-color-wrap',true);
+  showStep(n,'cc-frost-color-wrap', size!=='deluxe');
   showStep(n,'cc-top-wrap',true);
   showStep(n,'cc-alc-wrap',true);
   showStep(n,'cc-design-wrap',true);
@@ -1103,7 +1099,7 @@ function calcPrice(n) {
     const size = document.getElementById('cc-size-'+n)?.value;
     const qtyVal = document.getElementById('cc-qty-'+n)?.value;
     const qty = parseInt(qtyVal) || 0;
-    if(size==='deluxe') price = PRICES.cupcake.regular[qty] || PRICES.cupcake.deluxe;
+    if(size==='deluxe') price = PRICES.cupcake.deluxe;
     else if(size==='regular' && qty>0) price = PRICES.cupcake.regular[qty] || 0;
     else if(size==='jumbo' && qty>0) price = PRICES.cupcake.jumbo[qty] || 0;
     // Filling upcharges
