@@ -688,6 +688,38 @@ function subsHTML(n, prefix) {
   return h;
 }
 
+function getSubs(prefix) {
+  return {
+    flour: document.getElementById(prefix+'-sub-flour')?.value || '',
+    sugar: document.getElementById(prefix+'-sub-sugar')?.value || '',
+    milk:  document.getElementById(prefix+'-sub-milk')?.value || '',
+    oil:   document.getElementById(prefix+'-sub-oil')?.value || ''
+  };
+}
+function subsUpcharge(subs) {
+  let add = 0;
+  if(subs.flour) add += 5;
+  if(subs.sugar) add += 5;
+  if(subs.milk) add += 1.5;
+  return add;
+}
+function subsDetailsHtml(subs) {
+  let h = '';
+  if(subs.flour) h += '• Flour Sub: ' + subs.flour + ' (+$5)<br>';
+  if(subs.sugar) h += '• Sugar Sub: ' + subs.sugar + ' (+$5)<br>';
+  if(subs.milk) h += '• Milk Sub: ' + subs.milk + ' (+$1.50)<br>';
+  if(subs.oil) h += '• Oil Sub: ' + subs.oil + '<br>';
+  return h;
+}
+function subsDetailsText(subs) {
+  let t = '';
+  if(subs.flour) t += '  Flour Sub: ' + subs.flour + ' (+$5)\n';
+  if(subs.sugar) t += '  Sugar Sub: ' + subs.sugar + ' (+$5)\n';
+  if(subs.milk) t += '  Milk Sub: ' + subs.milk + ' (+$1.50)\n';
+  if(subs.oil) t += '  Oil Sub: ' + subs.oil + '\n';
+  return t;
+}
+
 // ─── CUPCAKE FIELDS ──────────────────────────────────────────
 function cupcakeFields(n) {
   return `
@@ -787,7 +819,7 @@ function cupcakeFields(n) {
   <!-- STEP 9: DESIGN NOTES -->
   <div class="fg hidden" id="cc-design-wrap-${n}">
     <label class="fl">Design / Messaging Request</label>
-    <textarea class="fta" id="cc-design-${n}" placeholder="Describe your design or message request..."></textarea>
+    <textarea class="fta" id="cc-design-${n}" placeholder="Describe your design or message request..." oninput="updateSummary();"></textarea>
     <div class="fnote">Please note: I am not an artist, but I will get as close as I can to your request. Not all design requests will be doable.</div>
   </div>
 
@@ -944,7 +976,7 @@ function cakeFields(n) {
   return `
   <!-- TYPE -->
   <div class="fg"><label class="fl">Cake Type <span class="req">*</span></label>
-    <select class="fs" id="ck-type-${n}"><option value="">Choose one</option><option>Normal</option><option>Gluten-Free</option><option>Vegan</option></select></div>
+    <select class="fs" id="ck-type-${n}" onchange="updateSummary();"><option value="">Choose one</option><option>Normal</option><option>Gluten-Free</option><option>Vegan</option></select></div>
 
   <!-- SHAPE -->
   <div class="fg"><label class="fl">Shape <span class="req">*</span></label>
@@ -1014,7 +1046,7 @@ function cakeFields(n) {
   <!-- DESIGN NOTES -->
   <div class="fg hidden" id="ck-design-wrap-${n}">
     <label class="fl">Design / Messaging Request</label>
-    <textarea class="fta" id="ck-design-${n}" placeholder="Describe your design or message..."></textarea>
+    <textarea class="fta" id="ck-design-${n}" placeholder="Describe your design or message..." oninput="updateSummary();"></textarea>
     <div class="fnote">Please note: I am not an artist, but I will get as close as I can to your request. Not all design requests will be doable.</div>
   </div>
 
@@ -1066,7 +1098,7 @@ function onCKFlav(n) { calcPrice(n); }
 function cheesecakeFields(n) {
   return `
   <div class="fg"><label class="fl">Type <span class="req">*</span></label>
-    <select class="fs" id="ches-type-${n}"><option value="">Choose one</option><option>Normal</option><option>Vegan</option></select></div>
+    <select class="fs" id="ches-type-${n}" onchange="updateSummary();"><option value="">Choose one</option><option>Normal</option><option>Vegan</option></select></div>
 
   <div class="fg"><label class="fl">Size <span class="req">*</span></label>
     <select class="fs" id="ches-size-${n}" onchange="calcPrice(${n});updateSummary();">
@@ -1083,7 +1115,7 @@ function cheesecakeFields(n) {
     </select></div>
 
   <div class="fg"><label class="fl">Flavor <span class="req">*</span></label>
-    <select class="fs" id="ches-flav-${n}" onchange="calcPrice("${n}");updateSummary();">${opts(CC_FLAVORS,'Select flavor')}</select></div>
+    <select class="fs" id="ches-flav-${n}" onchange="calcPrice(${n});updateSummary();">${opts(CC_FLAVORS,'Select flavor')}</select></div>
 
   <div class="fg"><label class="fl">Crust <span class="req">*</span></label>
     <select class="fs" id="ches-crust-${n}" onchange="updateSummary();">${opts(CC_CRUST,'Select crust')}</select></div>
@@ -1096,7 +1128,7 @@ function cheesecakeFields(n) {
 
   ${subsHTML(n,'ches-'+n)}
   <div class="fg" style="margin-top:12px;"><label class="fl">Design / Notes</label>
-    <textarea class="fta" id="ches-design-${n}" placeholder="Any additional notes..."></textarea></div>`;
+    <textarea class="fta" id="ches-design-${n}" placeholder="Any additional notes..." oninput="updateSummary();"></textarea></div>`;
 }
 
 // ─── PIE FIELDS ───────────────────────────────────────────────
@@ -1123,7 +1155,7 @@ function pieFields(n) {
 
   ${subsHTML(n,'pie-'+n)}
   <div class="fg" style="margin-top:12px;"><label class="fl">Design / Notes</label>
-    <textarea class="fta" id="pie-notes-${n}" placeholder="Any additional notes..."></textarea></div>`;
+    <textarea class="fta" id="pie-notes-${n}" placeholder="Any additional notes..." oninput="updateSummary();"></textarea></div>`;
 }
 
 // ─── CALC PRICE ───────────────────────────────────────────────
@@ -1151,12 +1183,7 @@ function calcPrice(n) {
     const alc = document.getElementById('cc-alc-'+n)?.value;
     if(alc==='yes') price += 10;
     // Substitution upcharges
-    const flourSub = document.getElementById('cc-'+n+'-sub-flour')?.value;
-    const sugarSub = document.getElementById('cc-'+n+'-sub-sugar')?.value;
-    const milkSub = document.getElementById('cc-'+n+'-sub-milk')?.value;
-    if(flourSub) price += 5;
-    if(sugarSub) price += 5;
-    if(milkSub) price += 1.5;
+    price += subsUpcharge(getSubs('cc-'+n));
     // Cupcake type upcharges (per dozen)
     const ccType = document.getElementById('cc-type-'+n)?.value || '';
     const dozens = size==='deluxe' ? 1 : Math.ceil((parseInt(document.getElementById('cc-qty-'+n)?.value)||0)/12);
@@ -1190,6 +1217,8 @@ function calcPrice(n) {
       else if(size==='8inch') price += 20;
       else if(size==='9inch') price += 25;
     }
+    // Substitution upcharges
+    price += subsUpcharge(getSubs('ck-'+n));
   } else if(cat==='cheesecake') {
     const chesFlav = document.getElementById('ches-flav-'+n)?.value || '';
     const qty = parseInt(document.getElementById('ches-qty-'+n)?.value) || 1;
@@ -1209,12 +1238,16 @@ function calcPrice(n) {
     const chesTop = document.getElementById('ches-top-'+n)?.value;
     if(chesTop && chesTop !== '' && chesTop !== 'None') chesBase += 2;
     price = chesBase * qty;
+    // Substitution upcharges
+    price += subsUpcharge(getSubs('ches-'+n));
   } else if(cat==='pie') {
     const pieSize = document.getElementById('pie-size-'+n)?.value;
     if(pieSize && PRICES.pie[pieSize]) price = PRICES.pie[pieSize];
     // Additional topping cost $2
     const pieTop = document.getElementById('pie-top-'+n)?.value;
     if(pieTop && pieTop !== '' && pieTop !== 'None') price += 2;
+    // Substitution upcharges
+    price += subsUpcharge(getSubs('pie-'+n));
   }
 
   dData[n].price = price;
@@ -1266,15 +1299,23 @@ function updateSummary() {
       const topColors = Array.from(topColorEls).map(function(el) {
         return el.parentElement.querySelector('.color-swatch-label')?.textContent || '';
       }).filter(Boolean);
+      // Fillings (per flavor)
+      const flavsForFill = [f1,f2,f3].filter(Boolean);
+      const fills = [];
+      flavsForFill.forEach(function(f,i) {
+        const fv = document.getElementById('cc-fill-'+n+'-'+i)?.value;
+        if(fv && fv !== 'None') fills.push((flavsForFill.length>1 ? f+': ' : '') + fv);
+      });
       // Subs
-      const flourSub = document.getElementById('cc-'+n+'-sub-flour')?.value;
-      const sugarSub = document.getElementById('cc-'+n+'-sub-sugar')?.value;
-      const milkSub = document.getElementById('cc-'+n+'-sub-milk')?.value;
+      const ccSubs = getSubs('cc-'+n);
+      // Design notes
+      const ccDesign = document.getElementById('cc-design-'+n)?.value || '';
       name = 'Cupcakes';
       if(size) details += '• Size: ' + size.split('—')[0].trim() + '<br>';
       if(qty) details += '• Quantity: ' + qty.split('(')[0].trim() + '<br>';
       const flavors = [f1,f2,f3].filter(Boolean).join(', ');
       if(flavors) details += '• Flavor(s): ' + flavors + '<br>';
+      if(fills.length) details += '• Filling(s): ' + fills.join(', ') + '<br>';
       if(frost) details += '• Frosting: ' + frost + '<br>';
       if(frostColors.length) details += '• Frosting Color: ' + frostColors.join(', ') + '<br>';
       if(tops.length) details += '• Toppings: ' + [...new Set(tops)].join(', ') + '<br>';
@@ -1283,12 +1324,11 @@ function updateSummary() {
         const alcType = document.getElementById('cc-alc-type-'+n)?.value;
         details += '• Alcohol: ' + (alcType||'Yes') + ' (+$10)<br>';
       }
-      if(flourSub) details += '• Flour Sub: ' + flourSub + ' (+$5)<br>';
-      if(sugarSub) details += '• Sugar Sub: ' + sugarSub + ' (+$5)<br>';
-      if(milkSub) details += '• Milk Sub: ' + milkSub + ' (+$1.50)<br>';
+      details += subsDetailsHtml(ccSubs);
       // Vegan type upcharge label
       const ccTypeSummary = document.getElementById('cc-type-'+n)?.value || '';
       if(ccTypeSummary && ccTypeSummary !== 'Normal') details += '• Type: ' + ccTypeSummary + '<br>';
+      if(ccDesign) details += '• Design/Notes: ' + ccDesign + '<br>';
     } else if(cat==='cake') {
       const shape = document.getElementById('ck-shape-'+n)?.value || '';
       const ckSizeEl = document.getElementById('ck-size-'+n);
@@ -1307,6 +1347,9 @@ function updateSummary() {
       const ckTopColors = Array.from(ckTopColorEls).map(function(el) {
         return el.parentElement.querySelector('.color-swatch-label')?.textContent || '';
       }).filter(Boolean);
+      const ckType = document.getElementById('ck-type-'+n)?.value || '';
+      const ckDesign = document.getElementById('ck-design-'+n)?.value || '';
+      const ckSubs = getSubs('ck-'+n);
       name = shape ? shape.charAt(0).toUpperCase()+shape.slice(1)+' Cake' : 'Cake';
       if(size) details += '• Size: ' + size.split('—')[0].trim() + '<br>';
       const flavors = [f1,f2].filter(Boolean).join(' + ');
@@ -1317,25 +1360,38 @@ function updateSummary() {
       const ckTops = [top1,top2].filter(function(t){return t&&t!=='None';});
       if(ckTops.length) details += '• Toppings: ' + ckTops.join(', ') + '<br>';
       if(ckTopColors.length) details += '• Topping Color: ' + ckTopColors.join(', ') + '<br>';
+      if(ckType && ckType !== 'Normal') details += '• Type: ' + ckType + '<br>';
+      details += subsDetailsHtml(ckSubs);
+      if(ckDesign) details += '• Design/Notes: ' + ckDesign + '<br>';
     } else if(cat==='cheesecake') {
       const chesSize = document.getElementById('ches-size-'+n)?.value || '';
       const chesQty = document.getElementById('ches-qty-'+n)?.value || '';
       const chesFlav = document.getElementById('ches-flav-'+n)?.value || '';
       const chesCrust = document.getElementById('ches-crust-'+n)?.value || '';
       const chesTop = document.getElementById('ches-top-'+n)?.value || '';
+      const chesType = document.getElementById('ches-type-'+n)?.value || '';
+      const chesDesign = document.getElementById('ches-design-'+n)?.value || '';
+      const chesSubs = getSubs('ches-'+n);
       name = 'Cheesecake';
       if(chesSize) details += '• Size: ' + chesSize + '<br>';
       if(chesQty) details += '• Quantity: ' + chesQty + '<br>';
       if(chesFlav) details += '• Flavor: ' + chesFlav + '<br>';
       if(chesCrust) details += '• Crust: ' + chesCrust + '<br>';
       if(chesTop && chesTop!=='None') details += '• Topping: ' + chesTop + '<br>';
+      if(chesType && chesType !== 'Normal') details += '• Type: ' + chesType + '<br>';
+      details += subsDetailsHtml(chesSubs);
+      if(chesDesign) details += '• Design/Notes: ' + chesDesign + '<br>';
     } else if(cat==='pie') {
       const pieType = document.getElementById('pie-type-'+n)?.value || '';
       const pieSize = document.getElementById('pie-size-'+n)?.value || '';
       const pieTop = document.getElementById('pie-top-'+n)?.value || '';
+      const pieNotes = document.getElementById('pie-notes-'+n)?.value || '';
+      const pieSubs = getSubs('pie-'+n);
       name = pieType || 'Pie / Cobbler';
       if(pieSize) details += '• Size: ' + pieSize + '<br>';
       if(pieTop && pieTop!=='None') details += '• Topping: ' + pieTop + '<br>';
+      details += subsDetailsHtml(pieSubs);
+      if(pieNotes) details += '• Design/Notes: ' + pieNotes + '<br>';
     }
 
     html += `<div class="sum-item">
@@ -1393,26 +1449,84 @@ function formatDesserts() {
       const f1 = document.getElementById('cc-flav1-'+n)?.value||'';
       const f2 = document.getElementById('cc-flav2-'+n)?.value||'';
       const f3 = document.getElementById('cc-flav3-'+n)?.value||'';
+      const flavsForFill = [f1,f2,f3].filter(Boolean);
+      const fills = [];
+      flavsForFill.forEach(function(f,i) {
+        const fv = document.getElementById('cc-fill-'+n+'-'+i)?.value;
+        if(fv && fv !== 'None') fills.push((flavsForFill.length>1 ? f+': ' : '') + fv);
+      });
       const frost = document.getElementById('cc-frost-'+n+'-0')?.value||'';
+      const frostColors = Array.from(document.querySelectorAll('#cc-frost-color-grid-'+n+' .color-swatch.selected')).map(function(el) {
+        return el.parentElement.querySelector('.color-swatch-label')?.textContent || '';
+      }).filter(Boolean);
+      const tops = [];
+      for(let fi=0; fi<3; fi++) {
+        for(let ti=1; ti<=2; ti++) {
+          const tv = document.getElementById('cc-top-'+n+'-'+fi+'-'+ti)?.value;
+          if(tv && tv!=='None') tops.push(tv);
+        }
+      }
+      const topColors = Array.from(document.querySelectorAll('#cc-top-color-grid-'+n+' .color-swatch.selected')).map(function(el) {
+        return el.parentElement.querySelector('.color-swatch-label')?.textContent || '';
+      }).filter(Boolean);
       const alc = document.getElementById('cc-alc-'+n)?.value||'';
       const alcType = document.getElementById('cc-alc-type-'+n)?.value||'';
       const design = document.getElementById('cc-design-'+n)?.value||'';
       txt+=`  Type: ${type}\n  Size: ${size}\n  Qty: ${qty}\n`;
       txt+=`  Flavors: ${[f1,f2,f3].filter(Boolean).join(', ')}\n`;
+      if(fills.length) txt+=`  Filling(s): ${fills.join(', ')}\n`;
       txt+=`  Frosting: ${frost}\n`;
+      if(frostColors.length) txt+=`  Frosting Color: ${frostColors.join(', ')}\n`;
+      if(tops.length) txt+=`  Toppings: ${[...new Set(tops)].join(', ')}\n`;
+      if(topColors.length) txt+=`  Topping Color: ${topColors.join(', ')}\n`;
       if(alc==='yes') txt+=`  Alcohol: ${alcType} (+$10)\n`;
+      txt += subsDetailsText(getSubs('cc-'+n));
       if(design) txt+=`  Design: ${design}\n`;
     } else if(cat==='cake') {
+      const f1 = document.getElementById('ck-flav1-'+n)?.value||'';
+      const f2 = document.getElementById('ck-flav2-'+n)?.value||'';
+      const fill = document.getElementById('ck-fill-'+n)?.value||'';
+      const frost = document.getElementById('ck-frost-'+n)?.value||'';
+      const ckColors = Array.from(document.querySelectorAll('#ck-frost-color-'+n+' .color-swatch.selected')).map(function(el) {
+        return el.parentElement.querySelector('.color-swatch-label')?.textContent || '';
+      }).filter(Boolean);
+      const top1 = document.getElementById('ck-top1-'+n)?.value||'';
+      const top2 = document.getElementById('ck-top2-'+n)?.value||'';
+      const ckTops = [top1,top2].filter(function(t){return t&&t!=='None';});
+      const ckTopColors = Array.from(document.querySelectorAll('#ck-top-color-'+n+' .color-swatch.selected')).map(function(el) {
+        return el.parentElement.querySelector('.color-swatch-label')?.textContent || '';
+      }).filter(Boolean);
+      const type = document.getElementById('ck-type-'+n)?.value||'';
+      txt+=`  Type: ${type}\n`;
       txt+=`  Shape: ${document.getElementById('ck-shape-'+n)?.value||''}\n`;
       txt+=`  Size: ${document.getElementById('ck-size-'+n)?.value||''}\n`;
-      txt+=`  Flavor: ${document.getElementById('ck-flav1-'+n)?.value||''}\n`;
+      txt+=`  Flavor: ${[f1,f2].filter(Boolean).join(' + ')}\n`;
+      if(fill && fill!=='None') txt+=`  Filling: ${fill}\n`;
+      txt+=`  Frosting: ${frost}\n`;
+      if(ckColors.length) txt+=`  Frosting Color: ${ckColors.join(', ')}\n`;
+      if(ckTops.length) txt+=`  Toppings: ${ckTops.join(', ')}\n`;
+      if(ckTopColors.length) txt+=`  Topping Color: ${ckTopColors.join(', ')}\n`;
+      txt += subsDetailsText(getSubs('ck-'+n));
       txt+=`  Design: ${document.getElementById('ck-design-'+n)?.value||''}\n`;
     } else if(cat==='cheesecake') {
+      txt+=`  Type: ${document.getElementById('ches-type-'+n)?.value||''}\n`;
       txt+=`  Size: ${document.getElementById('ches-size-'+n)?.value||''}\n`;
       txt+=`  Qty: ${document.getElementById('ches-qty-'+n)?.value||''}\n`;
       txt+=`  Flavor: ${document.getElementById('ches-flav-'+n)?.value||''}\n`;
+      txt+=`  Crust: ${document.getElementById('ches-crust-'+n)?.value||''}\n`;
+      const chesTop = document.getElementById('ches-top-'+n)?.value||'';
+      if(chesTop && chesTop!=='None') txt+=`  Topping: ${chesTop}\n`;
+      txt += subsDetailsText(getSubs('ches-'+n));
+      const chesDesign = document.getElementById('ches-design-'+n)?.value||'';
+      if(chesDesign) txt+=`  Design: ${chesDesign}\n`;
     } else if(cat==='pie') {
       txt+=`  Type: ${document.getElementById('pie-type-'+n)?.value||''}\n`;
+      txt+=`  Size: ${document.getElementById('pie-size-'+n)?.value||''}\n`;
+      const pieTop = document.getElementById('pie-top-'+n)?.value||'';
+      if(pieTop && pieTop!=='None') txt+=`  Topping: ${pieTop}\n`;
+      txt += subsDetailsText(getSubs('pie-'+n));
+      const pieNotes = document.getElementById('pie-notes-'+n)?.value||'';
+      if(pieNotes) txt+=`  Design: ${pieNotes}\n`;
     }
     txt+=`  Price: $${(d.price||0).toFixed(2)}\n`;
   });
