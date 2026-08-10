@@ -158,6 +158,29 @@ body{font-family:'Montserrat',sans-serif;background:#f4f0ed;color:var(--navy);}
 .crow:last-child{border-bottom:none;}
 .ck{color:#888;} .cv{color:var(--navy);font-weight:600;text-align:right;max-width:62%;}
 
+/* PAYMENT MODAL */
+.payment-overlay{display:none;position:fixed;inset:0;background:rgba(14,18,69,0.55);align-items:center;justify-content:center;padding:20px;z-index:1000;}
+.payment-overlay.show{display:flex;}
+.payment-modal{background:#fff;border-radius:8px;max-width:420px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);}
+.payment-modal-head{background:var(--navy);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;border-radius:8px 8px 0 0;}
+.payment-modal-title{color:#fff;font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:700;}
+.payment-modal-close{background:none;border:none;color:rgba(255,255,255,0.7);font-size:1.1rem;cursor:pointer;line-height:1;padding:4px;}
+.payment-modal-close:hover{color:#fff;}
+.payment-modal-body{padding:20px;}
+.payment-order-summary{background:var(--cream);border:1px solid var(--cream-dark);border-radius:6px;padding:14px 16px;margin-bottom:16px;}
+.payment-summary-title{font-size:0.6rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--navy);margin-bottom:8px;}
+.payment-summary-row{display:flex;justify-content:space-between;font-size:0.78rem;color:var(--navy);padding:4px 0;}
+.payment-summary-row.deposit{border-top:1px solid var(--cream-dark);margin-top:6px;padding-top:8px;font-weight:700;}
+.payment-note{font-size:0.7rem;color:#666;line-height:1.6;background:var(--pink-light);border-left:3px solid var(--rose-gold);border-radius:4px;padding:10px 12px;}
+.payment-processing{display:none;text-align:center;padding:24px 0;}
+.payment-processing.show{display:block;}
+.spinner{width:34px;height:34px;border:3px solid var(--cream-dark);border-top-color:var(--rose-gold);border-radius:50%;margin:0 auto 12px;animation:spin 0.8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.pay-btn{width:100%;background:var(--rose-gold);color:#fff;border:none;border-radius:4px;padding:13px;font-family:'Montserrat',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;margin-top:16px;transition:background 0.2s;}
+.pay-btn:hover{background:var(--navy);}
+.pay-btn:disabled{opacity:0.6;cursor:not-allowed;}
+.stripe-secure-note{text-align:center;font-size:0.62rem;color:#999;margin-top:10px;}
+
 /* FOOTER */
 .ftr{background:var(--navy);padding:13px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
 .ftr-tag{font-family:'Playfair Display',serif;font-style:italic;color:var(--rose-gold-light);font-size:0.82rem;}
@@ -793,9 +816,9 @@ function onCCSize(n) {
     hint.textContent = 'Sweetz Deluxe Box — one dozen, $50.';
   } else if(size === 'regular') {
     if(isGFVegan) {
-      qtyEl.innerHTML = '<option value="">Choose one</option><option value="12">One Dozen (12)</option><option value="24">Two Dozen (24)</option><option value="36">Three Dozen (36)</option><option value="48">Four Dozen (48)</option><option value="special">Five Dozen+ (Special Request)</option>';
+      qtyEl.innerHTML = '<option value="">Choose one</option><option value="12">One Dozen (12)</option><option value="24">Two Dozen (24)</option><option value="36">Three Dozen (36)</option><option value="48">Four Dozen (48)</option><option value="60">Five Dozen (60) — Special Request</option>';
     } else {
-      qtyEl.innerHTML = '<option value="">Choose one</option><option value="6">Half Dozen (6)</option><option value="12">One Dozen (12)</option><option value="24">Two Dozen (24)</option><option value="36">Three Dozen (36)</option><option value="48">Four Dozen (48)</option><option value="special">Five Dozen+ (Special Request)</option>';
+      qtyEl.innerHTML = '<option value="">Choose one</option><option value="6">Half Dozen (6)</option><option value="12">One Dozen (12)</option><option value="24">Two Dozen (24)</option><option value="36">Three Dozen (36)</option><option value="48">Four Dozen (48)</option><option value="60">Five Dozen (60) — Special Request</option>';
     }
     hint.textContent = 'Orders of five dozen regular cupcakes or two dozen jumbo cupcakes are considered special requests and need to be approved by Vaughn Sweetz.';
   } else if(size === 'jumbo') {
@@ -895,6 +918,13 @@ function checkColorTopping(n, sel) {
   show('cc-top-color-wrap-'+n, needsColor);
 }
 
+function checkCKColorTopping(n) {
+  const t1 = document.getElementById('ck-top1-'+n)?.value;
+  const t2 = document.getElementById('ck-top2-'+n)?.value;
+  const needsColor = COLOR_TOPPINGS.includes(t1) || COLOR_TOPPINGS.includes(t2);
+  show('ck-top-color-wrap-'+n, needsColor);
+}
+
 function onCCAlc(n) {
   const val = document.getElementById('cc-alc-'+n)?.value;
   show('cc-alc-sel-'+n, val==='yes');
@@ -902,8 +932,9 @@ function onCCAlc(n) {
 }
 
 function checkSpecialReq(n) {
-  const qty = document.getElementById('cc-qty-'+n)?.value;
-  if(qty==='special') {
+  const qtyEl = document.getElementById('cc-qty-'+n);
+  const label = qtyEl?.options[qtyEl.selectedIndex]?.text || '';
+  if(label.includes('Special Request')) {
     alert('Orders of 5 dozen or more (or more than 2 dozen Jumbo) are Special Requests. Please add details in the Special Requests field below.');
   }
 }
@@ -970,8 +1001,14 @@ function cakeFields(n) {
   <!-- TOPPINGS (round/heart only) -->
   <div class="hidden" id="ck-top-wrap-${n}">
     <label class="fl" style="margin:10px 0 6px;display:block;">Toppings (Max 2)</label>
-    <select class="fs" id="ck-top1-${n}" onchange="updateSummary();" style="margin-bottom:8px;">${opts(TOPPING_OPTS,'Topping 1 (optional)')}</select>
-    <select class="fs" id="ck-top2-${n}" onchange="updateSummary();">${opts(TOPPING_OPTS,'Topping 2 (optional)')}</select>
+    <select class="fs" id="ck-top1-${n}" onchange="checkCKColorTopping(${n});updateSummary();" style="margin-bottom:8px;">${opts(TOPPING_OPTS,'Topping 1 (optional)')}</select>
+    <select class="fs" id="ck-top2-${n}" onchange="checkCKColorTopping(${n});updateSummary();">${opts(TOPPING_OPTS,'Topping 2 (optional)')}</select>
+  </div>
+
+  <!-- TOPPING COLOR -->
+  <div class="hidden" id="ck-top-color-wrap-${n}">
+    <label class="fl" style="margin-top:10px;display:block;">Topping Color</label>
+    ${colorGridHTML('ck-top-color-'+n)}
   </div>
 
   <!-- DESIGN NOTES -->
@@ -1224,6 +1261,11 @@ function updateSummary() {
       const frostColors = Array.from(frostColorEls).map(function(el) {
         return el.parentElement.querySelector('.color-swatch-label')?.textContent || '';
       }).filter(Boolean);
+      // Topping color
+      const topColorEls = document.querySelectorAll('#cc-top-color-grid-'+n+' .color-swatch.selected');
+      const topColors = Array.from(topColorEls).map(function(el) {
+        return el.parentElement.querySelector('.color-swatch-label')?.textContent || '';
+      }).filter(Boolean);
       // Subs
       const flourSub = document.getElementById('cc-'+n+'-sub-flour')?.value;
       const sugarSub = document.getElementById('cc-'+n+'-sub-sugar')?.value;
@@ -1236,6 +1278,7 @@ function updateSummary() {
       if(frost) details += '• Frosting: ' + frost + '<br>';
       if(frostColors.length) details += '• Frosting Color: ' + frostColors.join(', ') + '<br>';
       if(tops.length) details += '• Toppings: ' + [...new Set(tops)].join(', ') + '<br>';
+      if(topColors.length) details += '• Topping Color: ' + topColors.join(', ') + '<br>';
       if(alc==='yes') {
         const alcType = document.getElementById('cc-alc-type-'+n)?.value;
         details += '• Alcohol: ' + (alcType||'Yes') + ' (+$10)<br>';
@@ -1260,6 +1303,10 @@ function updateSummary() {
       const ckColors = Array.from(ckColorEls).map(function(el) {
         return el.parentElement.querySelector('.color-swatch-label')?.textContent || '';
       }).filter(Boolean);
+      const ckTopColorEls = document.querySelectorAll('#ck-top-color-'+n+' .color-swatch.selected');
+      const ckTopColors = Array.from(ckTopColorEls).map(function(el) {
+        return el.parentElement.querySelector('.color-swatch-label')?.textContent || '';
+      }).filter(Boolean);
       name = shape ? shape.charAt(0).toUpperCase()+shape.slice(1)+' Cake' : 'Cake';
       if(size) details += '• Size: ' + size.split('—')[0].trim() + '<br>';
       const flavors = [f1,f2].filter(Boolean).join(' + ');
@@ -1269,6 +1316,7 @@ function updateSummary() {
       if(ckColors.length) details += '• Frosting Color: ' + ckColors.join(', ') + '<br>';
       const ckTops = [top1,top2].filter(function(t){return t&&t!=='None';});
       if(ckTops.length) details += '• Toppings: ' + ckTops.join(', ') + '<br>';
+      if(ckTopColors.length) details += '• Topping Color: ' + ckTopColors.join(', ') + '<br>';
     } else if(cat==='cheesecake') {
       const chesSize = document.getElementById('ches-size-'+n)?.value || '';
       const chesQty = document.getElementById('ches-qty-'+n)?.value || '';
