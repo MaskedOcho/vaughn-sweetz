@@ -820,14 +820,14 @@ function onCCSize(n) {
     } else {
       qtyEl.innerHTML = '<option value="">Choose one</option><option value="6">Half Dozen (6)</option><option value="12">One Dozen (12)</option><option value="24">Two Dozen (24)</option><option value="36">Three Dozen (36)</option><option value="48">Four Dozen (48)</option><option value="60">Five Dozen (60) — Special Request</option>';
     }
-    hint.textContent = 'Orders of five dozen regular cupcakes or two dozen jumbo cupcakes are considered special requests and need to be approved by Vaughn Sweetz.';
+    hint.textContent = 'Orders of 5 dozen regular or 2 dozen jumbo cupcakes are considered special requests. Please review the listed prices before submitting your order. Final order confirmation will be provided by Vaughn Sweetz.';
   } else if(size === 'jumbo') {
     if(isGFVegan) {
       qtyEl.innerHTML = '<option value="">Choose one</option><option value="12">One Dozen (12)</option><option value="24">Two Dozen (24) — Special Request</option>';
     } else {
       qtyEl.innerHTML = '<option value="">Choose one</option><option value="6">Half Dozen (6)</option><option value="12">One Dozen (12)</option><option value="24">Two Dozen (24) — Special Request</option>';
     }
-    hint.textContent = 'Orders of five dozen regular cupcakes or two dozen jumbo cupcakes are considered special requests and need to be approved by Vaughn Sweetz.';
+    hint.textContent = 'Orders of 5 dozen regular or 2 dozen jumbo cupcakes are considered special requests. Please review the listed prices before submitting your order. Final order confirmation will be provided by Vaughn Sweetz.';
   }
   showStep(n,'cc-qty-wrap',true);
   showStep(n,'cc-flav-wrap',true);
