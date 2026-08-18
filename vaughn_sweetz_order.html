@@ -53,6 +53,7 @@ body{font-family:'Montserrat',sans-serif;background:#f4f0ed;color:var(--navy);}
 .fta{resize:vertical;min-height:72px;}
 .fhint{font-size:0.58rem;color:#aaa;font-style:italic;}
 .fnote{font-size:0.68rem;color:var(--rose-gold);font-style:italic;background:var(--pink-light);padding:8px 12px;border-radius:4px;border-left:3px solid var(--rose-gold);margin-top:8px;line-height:1.5;}
+.fnote-error{font-size:0.7rem;font-weight:700;color:#fff;font-style:normal;background:var(--error);padding:8px 12px;border-radius:4px;border-left:3px solid #7a2015;margin-top:6px;line-height:1.5;}
 
 /* GRID */
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
@@ -241,8 +242,9 @@ body{font-family:'Montserrat',sans-serif;background:#f4f0ed;color:var(--navy);}
         </div>
         <div class="fg">
           <label class="fl">Date <span class="req">*</span></label>
-          <input type="date" class="fi" id="reqDate" onchange="validateDate();generateTimeSlots();">
+          <input type="date" class="fi" id="reqDate" onchange="validateDate();">
           <span class="fhint" id="dateHint">Tue–Sun, min. 3 days out</span>
+          <div class="fnote-error hidden" id="dateError"></div>
         </div>
         <div class="fg">
           <label class="fl">Time <span class="req">*</span></label>
@@ -500,30 +502,60 @@ window.onload = () => {
   addDessert();
 };
 
-function setMinDate() {
+function computeMinDate() {
   const today = new Date();
+  today.setHours(0,0,0,0);
   let minDate = new Date(today);
   minDate.setDate(minDate.getDate() + 3);
   // If min date lands on Monday (1), push to Tuesday
   while(minDate.getDay() === 1) { minDate.setDate(minDate.getDate() + 1); }
-  document.getElementById('reqDate').min = minDate.toISOString().split('T')[0];
+  return minDate;
+}
+
+function setMinDate() {
+  document.getElementById('reqDate').min = computeMinDate().toISOString().split('T')[0];
+}
+
+function showDateError(msg) {
+  const err = document.getElementById('dateError');
+  err.textContent = msg;
+  err.classList.remove('hidden');
+}
+function clearDateError() {
+  document.getElementById('dateError').classList.add('hidden');
+}
+
+// Returns true and clears the field if the selected date is invalid (Monday, or less
+// than 3 days out). Used both on date-field change and again before checkout, since
+// the native min/Monday block can be bypassed by typing a date directly into the field.
+function rejectInvalidDate() {
+  const dateEl = document.getElementById('reqDate');
+  if(!dateEl.value) return false;
+  const d = new Date(dateEl.value + 'T12:00:00');
+  d.setHours(0,0,0,0);
+  const day = d.getDay(); // 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
+  const minDate = computeMinDate();
+  if(day === 1) {
+    showDateError('⚠ Monday is not available. Please select a date Tuesday–Sunday.');
+    dateEl.value = '';
+    document.getElementById('reqTime').innerHTML = '<option value="">Select date first</option>';
+    return true;
+  }
+  if(d < minDate) {
+    const minLabel = minDate.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+    showDateError('⚠ Orders require at least 3 days advance notice. Earliest available date is ' + minLabel + '.');
+    dateEl.value = '';
+    document.getElementById('reqTime').innerHTML = '<option value="">Select date first</option>';
+    return true;
+  }
+  return false;
 }
 
 function validateDate() {
   const dateEl = document.getElementById('reqDate');
-  const hint = document.getElementById('dateHint');
   if(!dateEl.value) return;
-  const d = new Date(dateEl.value + 'T12:00:00');
-  const day = d.getDay(); // 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
-  if(day === 1) { // Monday blocked
-    hint.textContent = '⚠ Monday is not available. Please select Tue–Sun.';
-    hint.style.color = 'var(--error)';
-    dateEl.value = '';
-    document.getElementById('reqTime').innerHTML = '<option value="">Select date first</option>';
-    return;
-  }
-  hint.textContent = 'Tue–Sun only · Min. 3 days out';
-  hint.style.color = '';
+  if(rejectInvalidDate()) return;
+  clearDateError();
   generateTimeSlots();
 }
 
@@ -762,18 +794,18 @@ function cupcakeFields(n) {
       ${opts(FLAVOR_OPTS,'Select Flavor 1')}
     </select>
     <div id="cc-flav2-wrap-${n}" class="hidden" style="margin-top:8px;">
-      <select class="fs" id="cc-flav2-${n}" onchange="onCCFlav(${n})"><option value="">Select Flavor 2 (optional)</option>${opts(FLAVOR_OPTS)}</select>
+      <select class="fs" id="cc-flav2-${n}" onchange="onCCFlav(${n})"><option value="">Select Flavor 2</option>${opts(FLAVOR_OPTS)}</select>
     </div>
     <div id="cc-flav3-wrap-${n}" class="hidden" style="margin-top:8px;">
-      <select class="fs" id="cc-flav3-${n}" onchange="onCCFlav(${n})"><option value="">Select Flavor 3 (optional)</option>${opts(FLAVOR_OPTS)}</select>
+      <select class="fs" id="cc-flav3-${n}" onchange="onCCFlav(${n})"><option value="">Select Flavor 3</option>${opts(FLAVOR_OPTS)}</select>
     </div>
   </div>
 
   <!-- STEP 5: FILLING(S) -->
   <div class="fg hidden" id="cc-fill-wrap-${n}">
-    <label class="fl">Filling <span class="req">*</span></label>
+    <label class="fl">Filling (Optional)</label>
     <div id="cc-fill-fields-${n}"></div>
-    <div class="fhint">Buttercream/Cream Cheese fillings: no charge. All others: +$3 per filling</div>
+    <div class="fhint">Buttercream/Cream Cheese Frostings: No charge. All others: +$3 per filling. No extra fillings charge for Sweetz Deluxe Box.</div>
   </div>
 
   <!-- STEP 6: FROSTING -->
@@ -802,17 +834,8 @@ function cupcakeFields(n) {
 
   <!-- STEP 8: ALCOHOL -->
   <div class="fg hidden" id="cc-alc-wrap-${n}">
-    <label class="fl">Alcohol Infusion</label>
-    <select class="fs" id="cc-alc-${n}" onchange="onCCAlc(${n})">
-      <option value="">Choose one</option>
-      <option value="no">No</option>
-      <option value="yes">Yes (+$10.00)</option>
-    </select>
-    <div class="hidden" id="cc-alc-sel-${n}" style="margin-top:8px;">
-      <select class="fs" id="cc-alc-type-${n}" onchange="calcPrice(${n})">
-        ${opts(BAILEYS,"Select Bailey's Flavor")}
-      </select>
-    </div>
+    <label class="fl">Alcohol Infusion (Optional)</label>
+    <div id="cc-alc-fields-${n}"></div>
     <div class="fhint">Alcohol infusion available for cupcakes only</div>
   </div>
 
@@ -877,12 +900,14 @@ function onCCSize(n) {
   renderCCFillFields(n);
   renderCCFrostFields(n);
   renderCCTopFields(n);
+  renderCCAlcFields(n);
 }
 
 function onCCFlav(n) {
   renderCCFillFields(n);
   renderCCFrostFields(n);
   renderCCTopFields(n);
+  renderCCAlcFields(n);
   calcPrice(n);
 }
 
@@ -948,6 +973,33 @@ function checkColorTopping(n, sel) {
   const val = sel.value;
   const needsColor = COLOR_TOPPINGS.includes(val);
   show('cc-top-color-wrap-'+n, needsColor);
+  updateSummary();
+}
+
+function renderCCAlcFields(n) {
+  const flavs = getCCFlavors(n);
+  const size = document.getElementById('cc-size-'+n)?.value;
+  const container = document.getElementById('cc-alc-fields-'+n);
+  if(!container) return;
+  const alcBlock = (i, label) => `
+    <div style="margin-bottom:8px;">
+      ${label ? '<div class="fhint" style="margin-bottom:4px;">Alcohol Infusion for '+label+' (Optional)</div>' : ''}
+      <select class="fs" id="cc-alc-${n}-${i}" onchange="onCCAlc(${n},${i})">
+        <option value="">Choose one</option>
+        <option value="no">No</option>
+        <option value="yes">Yes (+$10.00)</option>
+      </select>
+      <div class="hidden" id="cc-alc-sel-${n}-${i}" style="margin-top:8px;">
+        <select class="fs" id="cc-alc-type-${n}-${i}" onchange="calcPrice(${n})">
+          ${opts(BAILEYS,"Select Bailey's Flavor")}
+        </select>
+      </div>
+    </div>`;
+  if(size === 'deluxe') {
+    container.innerHTML = flavs.map((f,i) => alcBlock(i, f || ('Flavor '+(i+1)))).join('');
+  } else {
+    container.innerHTML = alcBlock(0, '');
+  }
 }
 
 function checkCKColorTopping(n) {
@@ -957,9 +1009,9 @@ function checkCKColorTopping(n) {
   show('ck-top-color-wrap-'+n, needsColor);
 }
 
-function onCCAlc(n) {
-  const val = document.getElementById('cc-alc-'+n)?.value;
-  show('cc-alc-sel-'+n, val==='yes');
+function onCCAlc(n, i) {
+  const val = document.getElementById('cc-alc-'+n+'-'+i)?.value;
+  show('cc-alc-sel-'+n+'-'+i, val==='yes');
   calcPrice(n);
 }
 
@@ -1112,7 +1164,9 @@ function cheesecakeFields(n) {
       <option value="">Choose one</option>
       <option value="1">1</option><option value="2">2</option>
       <option value="3">3</option><option value="4">4 (max)</option>
-    </select></div>
+    </select>
+    <div class="fhint">These selections apply to all dessert quantities. For different options, use "Add Another Dessert".</div>
+  </div>
 
   <div class="fg"><label class="fl">Flavor <span class="req">*</span></label>
     <select class="fs" id="ches-flav-${n}" onchange="calcPrice(${n});updateSummary();">${opts(CC_FLAVORS,'Select flavor')}</select></div>
@@ -1141,11 +1195,20 @@ function pieFields(n) {
       <option value="regular">Regular (8–9 inch Pan)</option>
     </select></div>
 
-  <div class="fg"><label class="fl">Dessert <span class="req">*</span></label>
+  <div class="fg"><label class="fl">Flavor <span class="req">*</span></label>
     <select class="fs" id="pie-type-${n}" onchange="calcPrice(${n});updateSummary();">
       <option value="">Choose one</option>
       <option>Sweet Potato Pie</option><option>Peach Cobbler</option>
     </select></div>
+
+  <div class="fg"><label class="fl">Quantity <span class="req">*</span></label>
+    <select class="fs" id="pie-qty-${n}" onchange="calcPrice(${n});updateSummary();">
+      <option value="">Choose one</option>
+      <option value="1">1</option><option value="2">2</option>
+      <option value="3">3</option><option value="4">4 (max)</option>
+    </select>
+    <div class="fhint">These selections apply to all dessert quantities. For different options, use "Add Another Dessert".</div>
+  </div>
 
   <div class="fg"><label class="fl">Additional Toppings (Optional)</label>
     <select class="fs" id="pie-top-${n}" onchange="calcPrice(${n});updateSummary();">
@@ -1179,9 +1242,11 @@ function calcPrice(n) {
         if(size!=='deluxe') price += 3;
       }
     });
-    // Alcohol
-    const alc = document.getElementById('cc-alc-'+n)?.value;
-    if(alc==='yes') price += 10;
+    // Alcohol (one selector per flavor for deluxe, one overall otherwise)
+    const alcSlots = size==='deluxe' ? flavs.length : 1;
+    for(let ai=0; ai<alcSlots; ai++) {
+      if(document.getElementById('cc-alc-'+n+'-'+ai)?.value === 'yes') price += 10;
+    }
     // Substitution upcharges
     price += subsUpcharge(getSubs('cc-'+n));
     // Cupcake type upcharges (per dozen)
@@ -1242,10 +1307,13 @@ function calcPrice(n) {
     price += subsUpcharge(getSubs('ches-'+n));
   } else if(cat==='pie') {
     const pieSize = document.getElementById('pie-size-'+n)?.value;
-    if(pieSize && PRICES.pie[pieSize]) price = PRICES.pie[pieSize];
+    const pieQty = parseInt(document.getElementById('pie-qty-'+n)?.value) || 1;
+    let pieBase = 0;
+    if(pieSize && PRICES.pie[pieSize]) pieBase = PRICES.pie[pieSize];
     // Additional topping cost $2
     const pieTop = document.getElementById('pie-top-'+n)?.value;
-    if(pieTop && pieTop !== '' && pieTop !== 'None') price += 2;
+    if(pieTop && pieTop !== '' && pieTop !== 'None') pieBase += 2;
+    price = pieBase * pieQty;
     // Substitution upcharges
     price += subsUpcharge(getSubs('pie-'+n));
   }
@@ -1273,6 +1341,7 @@ function updateSummary() {
     let name = '', details = '';
     if(cat==='cupcake') {
       const sizeEl = document.getElementById('cc-size-'+n);
+      const sizeVal = sizeEl?.value || '';
       const size = sizeEl?.options[sizeEl?.selectedIndex]?.text || '';
       const qtyEl = document.getElementById('cc-qty-'+n);
       const qty = qtyEl?.options[qtyEl?.selectedIndex]?.text || '';
@@ -1280,7 +1349,6 @@ function updateSummary() {
       const f2 = document.getElementById('cc-flav2-'+n)?.value || '';
       const f3 = document.getElementById('cc-flav3-'+n)?.value || '';
       const frost = document.getElementById('cc-frost-'+n+'-0')?.value || '';
-      const alc = document.getElementById('cc-alc-'+n)?.value;
       // Toppings
       const tops = [];
       for(let fi=0; fi<3; fi++) {
@@ -1306,6 +1374,16 @@ function updateSummary() {
         const fv = document.getElementById('cc-fill-'+n+'-'+i)?.value;
         if(fv && fv !== 'None') fills.push((flavsForFill.length>1 ? f+': ' : '') + fv);
       });
+      // Alcohol infusion (one selector per flavor for deluxe, one overall otherwise)
+      const alcSlots = sizeVal==='deluxe' ? flavsForFill.length : 1;
+      const alcDetails = [];
+      for(let ai=0; ai<alcSlots; ai++) {
+        if(document.getElementById('cc-alc-'+n+'-'+ai)?.value === 'yes') {
+          const at = document.getElementById('cc-alc-type-'+n+'-'+ai)?.value;
+          const label = sizeVal==='deluxe' ? (flavsForFill[ai] || ('Flavor '+(ai+1))) + ': ' : '';
+          alcDetails.push(label + (at || 'Yes'));
+        }
+      }
       // Subs
       const ccSubs = getSubs('cc-'+n);
       // Design notes
@@ -1320,10 +1398,7 @@ function updateSummary() {
       if(frostColors.length) details += '• Frosting Color: ' + frostColors.join(', ') + '<br>';
       if(tops.length) details += '• Toppings: ' + [...new Set(tops)].join(', ') + '<br>';
       if(topColors.length) details += '• Topping Color: ' + topColors.join(', ') + '<br>';
-      if(alc==='yes') {
-        const alcType = document.getElementById('cc-alc-type-'+n)?.value;
-        details += '• Alcohol: ' + (alcType||'Yes') + ' (+$10)<br>';
-      }
+      if(alcDetails.length) details += '• Alcohol: ' + alcDetails.join(', ') + ' (+$10 each)<br>';
       details += subsDetailsHtml(ccSubs);
       // Vegan type upcharge label
       const ccTypeSummary = document.getElementById('cc-type-'+n)?.value || '';
@@ -1384,11 +1459,13 @@ function updateSummary() {
     } else if(cat==='pie') {
       const pieType = document.getElementById('pie-type-'+n)?.value || '';
       const pieSize = document.getElementById('pie-size-'+n)?.value || '';
+      const pieQty = document.getElementById('pie-qty-'+n)?.value || '';
       const pieTop = document.getElementById('pie-top-'+n)?.value || '';
       const pieNotes = document.getElementById('pie-notes-'+n)?.value || '';
       const pieSubs = getSubs('pie-'+n);
       name = pieType || 'Pie / Cobbler';
       if(pieSize) details += '• Size: ' + pieSize + '<br>';
+      if(pieQty) details += '• Quantity: ' + pieQty + '<br>';
       if(pieTop && pieTop!=='None') details += '• Topping: ' + pieTop + '<br>';
       details += subsDetailsHtml(pieSubs);
       if(pieNotes) details += '• Design/Notes: ' + pieNotes + '<br>';
@@ -1469,8 +1546,15 @@ function formatDesserts() {
       const topColors = Array.from(document.querySelectorAll('#cc-top-color-grid-'+n+' .color-swatch.selected')).map(function(el) {
         return el.parentElement.querySelector('.color-swatch-label')?.textContent || '';
       }).filter(Boolean);
-      const alc = document.getElementById('cc-alc-'+n)?.value||'';
-      const alcType = document.getElementById('cc-alc-type-'+n)?.value||'';
+      const alcSlots = size==='deluxe' ? flavsForFill.length : 1;
+      const alcDetails = [];
+      for(let ai=0; ai<alcSlots; ai++) {
+        if(document.getElementById('cc-alc-'+n+'-'+ai)?.value === 'yes') {
+          const at = document.getElementById('cc-alc-type-'+n+'-'+ai)?.value;
+          const label = size==='deluxe' ? (flavsForFill[ai] || ('Flavor '+(ai+1))) + ': ' : '';
+          alcDetails.push(label + (at || 'Yes'));
+        }
+      }
       const design = document.getElementById('cc-design-'+n)?.value||'';
       txt+=`  Type: ${type}\n  Size: ${size}\n  Qty: ${qty}\n`;
       txt+=`  Flavors: ${[f1,f2,f3].filter(Boolean).join(', ')}\n`;
@@ -1479,7 +1563,7 @@ function formatDesserts() {
       if(frostColors.length) txt+=`  Frosting Color: ${frostColors.join(', ')}\n`;
       if(tops.length) txt+=`  Toppings: ${[...new Set(tops)].join(', ')}\n`;
       if(topColors.length) txt+=`  Topping Color: ${topColors.join(', ')}\n`;
-      if(alc==='yes') txt+=`  Alcohol: ${alcType} (+$10)\n`;
+      if(alcDetails.length) txt+=`  Alcohol: ${alcDetails.join(', ')} (+$10 each)\n`;
       txt += subsDetailsText(getSubs('cc-'+n));
       if(design) txt+=`  Design: ${design}\n`;
     } else if(cat==='cake') {
@@ -1522,6 +1606,7 @@ function formatDesserts() {
     } else if(cat==='pie') {
       txt+=`  Type: ${document.getElementById('pie-type-'+n)?.value||''}\n`;
       txt+=`  Size: ${document.getElementById('pie-size-'+n)?.value||''}\n`;
+      txt+=`  Qty: ${document.getElementById('pie-qty-'+n)?.value||''}\n`;
       const pieTop = document.getElementById('pie-top-'+n)?.value||'';
       if(pieTop && pieTop!=='None') txt+=`  Topping: ${pieTop}\n`;
       txt += subsDetailsText(getSubs('pie-'+n));
@@ -1550,6 +1635,7 @@ function validateAndOpenPayment() {
   if(!document.getElementById('phone').value.trim()) { alert('Please enter your phone number.'); return; }
   if(!document.getElementById('fulfillment').value) { alert('Please select pickup or delivery.'); return; }
   if(!document.getElementById('reqDate').value) { alert('Please select a date.'); return; }
+  if(rejectInvalidDate()) { alert('Please select a valid date: Tuesday–Sunday, at least 3 days from today.'); return; }
   if(!document.getElementById('reqTime').value) { alert('Please select a time.'); return; }
   if(!document.getElementById('agreement').checked) { alert('Please agree to the order terms.'); return; }
   if(document.querySelectorAll('.dessert-item').length === 0) { alert('Please add at least one dessert.'); return; }
