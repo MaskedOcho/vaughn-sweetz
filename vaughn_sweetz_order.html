@@ -296,8 +296,7 @@ body{font-family:'Montserrat',sans-serif;background:#f4f0ed;color:var(--navy);}
       <div class="add-btn-sub">Additional order sections will appear based on your selection</div>
     </div>
   </button>
-
-
+  <div class="fnote hidden" id="addDessertMaxNote">Maximum of 6 dessert orders per request. For larger orders, please contact us directly.</div>
 
   <!-- SECTION: ADDITIONAL DETAILS -->
   <div class="sec-block">
@@ -594,7 +593,10 @@ function toggleAddr() {
 }
 
 // ─── ADD DESSERT ─────────────────────────────────────────────
+const MAX_DESSERTS = 6;
+
 function addDessert() {
+  if(document.querySelectorAll('.dessert-item').length >= MAX_DESSERTS) return;
   dessertCount++;
   const n = dessertCount;
   dData[n] = { cat:'cupcake', price:0 };
@@ -605,6 +607,7 @@ function addDessert() {
   document.getElementById('dessertContainer').appendChild(div);
   initDessert(n);
   updateSummary();
+  updateAddDessertBtnState();
 }
 
 function removeDessert(n) {
@@ -612,6 +615,13 @@ function removeDessert(n) {
   if(el) el.remove();
   delete dData[n];
   updateSummary();
+  updateAddDessertBtnState();
+}
+
+function updateAddDessertBtnState() {
+  const atMax = document.querySelectorAll('.dessert-item').length >= MAX_DESSERTS;
+  show('addDessertBtn', !atMax);
+  show('addDessertMaxNote', atMax);
 }
 
 // ─── BUILD DESSERT HTML ───────────────────────────────────────
